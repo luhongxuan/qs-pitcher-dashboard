@@ -2,72 +2,43 @@
 import { Pitcher, PredictionResponse, GameLog, PitcherStats } from '../types';
 import { MOCK_TOP_PITCHERS, MOCK_RECENT_GAMES } from '../constants';
 
-// 設定後端 API 基礎路徑 (開發時可能是 http://localhost:8000)
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+// services/api.ts
 
-export const getTopPitchers = async (): Promise<Pitcher[]> => {
-  // 目前後端尚未實作此 API，暫時回傳 Mock
-  // TODO: 實作後端 @app.get("/api/top-pitchers")
-  return new Promise(resolve => setTimeout(() => resolve(MOCK_TOP_PITCHERS), 600));
-};
-
-export const searchPitchers = async (query: string): Promise<Pitcher[]> => {
-  // 暫時回傳 Mock
-  return new Promise(resolve => {
-    setTimeout(() => {
-      if (!query) resolve([]);
-      resolve(MOCK_TOP_PITCHERS.filter(p => 
-        p.name.toLowerCase().includes(query.toLowerCase()) || 
-        p.team.toLowerCase().includes(query.toLowerCase())
-      ));
-    }, 400);
-  });
-};
+// 設定後端網址 (開發時通常是 localhost:8000，上線後是 Render 網址)
+// 注意：Vite 專案中，若有設定 proxy，可直接用 '/api' 或相對路徑
+const API_BASE_URL = 'https://qs-pitcher-dashboard-api.onrender.com';
 
 export const getPitcherPrediction = async (pitcherId: string, date?: string): Promise<PredictionResponse> => {
-  // === 連接真實後端 ===
   try {
-    const url = new URL(`${API_BASE_URL}/prediction/${encodeURIComponent(pitcherId)}`, window.location.origin);
+    // 建構 URL: http://127.0.0.1:8000/predict?pitcher=Gerrit%20Cole
+    const url = new URL(`${API_BASE_URL}/predict`);
+    url.searchParams.append('pitcher', decodeURIComponent(pitcherId)); // 解碼網址中的名字
     if (date) {
-      url.searchParams.append('date', date);
+      url.searchParams.append('game_date', date);
     }
 
     const response = await fetch(url.toString());
     
     if (!response.ok) {
+      // 如果後端回傳 404，這裡會拋出錯誤，讓前端頁面顯示 "Pitcher Not Found"
       throw new Error(`API Error: ${response.statusText}`);
     }
 
     const data = await response.json();
-    return data as PredictionResponse;
+    
+    // 轉換後端格式為前端需要的格式 (如果欄位名稱不完全一致)
+    return {
+      pitcher: data.pitcher,
+      pitcher_id: data.pitcher || pitcherId,
+      game_date: data.game_date,
+      qs_probability: data.qs_prob, // 後端回傳的是 qs_prob
+      threshold: 0.5, // 或者從後端取得
+      opp_team: data.opp_team || "Unknown",
+      features: [] // 如果您的後端還沒回傳 features，先給空陣列避免報錯
+    };
 
   } catch (error) {
-    console.error("Failed to fetch prediction from backend, falling back to mock for demo.", error);
-    // 如果連線失敗 (例如後端沒開)，為了展示效果，回傳一個帶有錯誤標記的 Mock 或拋出錯誤
+    console.error("Failed to fetch prediction:", error);
     throw error;
   }
 };
-
-export const getRecentGames = async (pitcherId: string): Promise<GameLog[]> => {
-  // TODO: 實作後端 @app.get("/api/pitcher/{id}/games")
-  return new Promise(resolve => setTimeout(() => resolve(MOCK_RECENT_GAMES), 500));
-};
-
-export const getPitcherStats = async (pitcherId: string): Promise<PitcherStats> => {
-    // TODO: 實作後端 @app.get("/api/pitcher/{id}/stats")
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const pitcher = MOCK_TOP_PITCHERS.find(p => p.id === pitcherId);
-            resolve({
-                era_last_season: pitcher?.season_era || 3.50,
-                whip_last_season: pitcher?.season_whip || 1.20,
-                qs_count: 18,
-                qs_rate: pitcher?.qs_percentage || 50,
-                avg_ip_last3: 6.2,
-                avg_er_last3: 1.8,
-                opp_ops: 0.680,
-                rest_days: 5
-            });
-        }, 500);
-    });
-}

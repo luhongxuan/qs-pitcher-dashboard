@@ -183,7 +183,9 @@ async def get_prediction(
         SELECT rest_days, opp_ops, is_home, avg_ip_last3, avg_er_last3,
                season_era, season_whip, hand, opp_team, team AS "Team", pitcher, game_date
         FROM pitcher_features
-        WHERE pitcher = %s {date_clause}
+        WHERE pitcher ILIKE %s {date_clause}
+        ORDER BY game_date DESC
+        LIMIT 1
     """
     
     # 注意：如果 SQL 查詢欄位名稱不同，請使用 AS alias 
