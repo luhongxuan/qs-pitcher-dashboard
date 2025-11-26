@@ -27,15 +27,10 @@ export const HomePage: React.FC = () => {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchTerm.trim()) {
-      // For demo purposes, we just find the first match in our mock list
-      // In a real app, this would go to a search results page
-      const match = pitchers.find(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-      if (match) {
-        navigate(`/pitcher/${match.id}`);
-      } else {
-        alert("Pitcher not found in demo database. Try 'Skubal' or 'Wheeler'.");
-      }
+    const trimmedTerm = searchTerm.trim();
+
+    if(trimmedTerm) {
+      navigate(`/pitcher/${encodeURIComponent(trimmedTerm)}`);
     }
   };
 
