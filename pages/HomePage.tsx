@@ -94,10 +94,10 @@ export const HomePage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pitchers.map((pitcher) => (
+            {pitchers.map((pitcher, index) => (
               <div 
-                key={pitcher.id} 
-                onClick={() => navigate(`/pitcher/${pitcher.id}`)}
+                key={index}
+                onClick={() => navigate(`/pitcher/${pitcher.pitcher_name}`)}
                 className="group bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/10 transition-all cursor-pointer relative overflow-hidden"
               >
                 <div className="flex items-start justify-between">
@@ -109,12 +109,12 @@ export const HomePage: React.FC = () => {
                     />
                     <div>
                       <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{pitcher.pitcher_name}</h3>
-                      <p className="text-sm text-slate-400">{pitcher.team} • {pitcher.opp_team} HP</p>
+                      <p className="text-sm text-slate-400">{pitcher.team} • {pitcher.opp_team}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400 font-mono mb-1">QS%</div>
-                    <div className="font-bold text-white">{pitcher.qs_probability}%</div>
+                    <div className="font-bold text-white">{pitcher.qs_probability.toFixed(2)}%</div>
                   </div>
                 </div>
 
@@ -133,7 +133,7 @@ export const HomePage: React.FC = () => {
                       (pitcher.qs_probability || 0) > 75 ? 'text-emerald-400' : 
                       (pitcher.qs_probability || 0) > 50 ? 'text-yellow-400' : 'text-rose-400'
                     }`}>
-                      {pitcher.qs_probability}%
+                      {pitcher.qs_probability.toFixed(2)}%
                     </div>
                   </div>
                 </div>

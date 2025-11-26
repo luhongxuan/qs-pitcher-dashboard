@@ -1,6 +1,7 @@
 // services/api.ts
 import { Pitcher, PredictionResponse, GameLog, PitcherStats } from '../types';
 import { MOCK_TOP_PITCHERS, MOCK_PREDICTION_TEMPLATE, MOCK_RECENT_GAMES } from '../constants';
+import { Pi } from 'lucide-react';
 
 // services/api.ts
 
@@ -53,13 +54,13 @@ export const getTopPitchers = async (): Promise<Pitcher[]> => {
 
     const data = await response.json();
 
-    return data.map((item: any) => ({
+    return data.map((item: any, index: number) => ({
       pitcher_name: item.pitcher_name,
       team: item.team,
       opp_team: item.opp_team,
       avg_ip_last3: item.avg_ip_last3,
       avg_er_last3: item.avg_er_last3,
-      qs_probability: item.qs_prebability
+      qs_probability: item.qs_probability
     }));
   } catch (error) {
     console.error("Error fetching top pitchers:", error);

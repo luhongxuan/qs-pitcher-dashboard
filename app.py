@@ -259,7 +259,8 @@ async def get_top_predictions(
         row_dict = dict(zip(cols, row))
         
         pitcher_data = {
-            "pitcher": row_dict.get("pitcher_name"),
+            "pitcher_id": row_dict.get("pitcher_name"),
+            "pitcher_name": row_dict.get("pitcher_name"),
             "game_date": str(row_dict.get("game_date")),
             "qs_probability": row_dict.get("qs_prebability"),
             "team": row_dict.get("team"),
@@ -270,7 +271,6 @@ async def get_top_predictions(
         resultes.append(pitcher_data)
     
     # 3. 回傳結果
-    print(resultes)
     return resultes
 
 # TODO: 實作其他端點以取代 Mock Data
