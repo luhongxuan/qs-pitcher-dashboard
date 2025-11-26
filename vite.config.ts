@@ -14,7 +14,6 @@ export default defineConfig(({ mode }) => {
           '/api': {
             target: 'http://localhost:8000',
             changeOrigin: true,
-            // rewrite: (path) => path.replace(/^\/api/, '') // 如果後端路徑沒有 /api 前綴則開啟此行
           }
         }
       },
