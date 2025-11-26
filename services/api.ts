@@ -6,8 +6,8 @@ import { MOCK_TOP_PITCHERS, MOCK_PREDICTION_TEMPLATE, MOCK_RECENT_GAMES } from '
 
 // 設定後端網址 (開發時通常是 localhost:8000，上線後是 Render 網址)
 // 注意：Vite 專案中，若有設定 proxy，可直接用 '/api' 或相對路徑
-const API_BASE_URL = 'https://qs-pitcher-dashboard-api.onrender.com';
-
+const API_BASE_URL = 'http://localhost:8000/api';
+  
 export const getPitcherPrediction = async (pitcherId: string, date?: string): Promise<PredictionResponse> => {
   try {
     // 建構 URL: http://127.0.0.1:8000/predict?pitcher=Gerrit%20Cole

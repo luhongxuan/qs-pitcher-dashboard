@@ -227,7 +227,7 @@ async def get_prediction(
     }
 
 @app.get("/api/get_top_predictions")
-async def get_prediction(
+async def get_top_predictions(
     request: Request, 
 ):
     db = request.app.state.db
@@ -270,6 +270,7 @@ async def get_prediction(
         resultes.append(pitcher_data)
     
     # 3. 回傳結果
+    print(resultes)
     return resultes
 
 # TODO: 實作其他端點以取代 Mock Data

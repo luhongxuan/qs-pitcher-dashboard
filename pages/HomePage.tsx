@@ -121,11 +121,11 @@ export const HomePage: React.FC = () => {
                 <div className="mt-6 grid grid-cols-3 gap-2 border-t border-slate-800 pt-4">
                   <div className="text-center">
                     <div className="text-xs text-slate-500 uppercase">avg_ERA</div>
-                    <div className="font-semibold text-slate-200">{pitcher.avg_er_last3.toFixed(2)}</div>
+                    <div className="font-semibold text-slate-200">{pitcher.avg_er_last3}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-slate-500 uppercase">avg_IP</div>
-                    <div className="font-semibold text-slate-200">{pitcher.avg_ip_last3.toFixed(2)}</div>
+                    <div className="font-semibold text-slate-200">{pitcher.avg_ip_last3}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-slate-500 uppercase">Next Prob</div>
