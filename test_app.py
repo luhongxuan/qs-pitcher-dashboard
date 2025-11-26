@@ -11,6 +11,9 @@ import psycopg
 import pandas as pd
 import numpy as np
 import shap
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # === 設定 ===
 # 確保這些欄位名稱與您訓練時完全一致
@@ -226,11 +229,8 @@ async def get_prediction(
         "features": features_contrib
     }
 
-@app.get("/api/get_top_predictions")
-async def get_prediction(
-    request: Request, 
-):
-    db = request.app.state.db
+def get_top_predictions():
+    db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
 
     sql = f"""
         SELECT pitcher_name, game_date, team, opp_team, avg_ip_last3, avg_er_last3,
@@ -244,33 +244,35 @@ async def get_prediction(
     
     with db.cursor() as cur:
         cur.execute(sql)
-        rows = cur.fetchall()
-        if cur.description:
-            cols = [desc[0] for desc in cur.description]
-        else:
-            cols = []
+        row = cur.fetchone() # 假設回傳 tuple
+        cols = [desc[0] for desc in cur.description]
 
-    if not rows:
+    if not row:
         raise HTTPException(status_code=404, detail="No data found")
 
     # 轉成 DataFrame
-    resultes = []
-    for row in rows:
-        row_dict = dict(zip(cols, row))
-        
-        pitcher_data = {
-            "pitcher": row_dict.get("pitcher_name"),
-            "game_date": str(row_dict.get("game_date")),
-            "qs_probability": row_dict.get("qs_prebability"),
-            "team": row_dict.get("team"),
-            "opp_team": row_dict.get("opp_team"),
-            "avg_ip_last3": row_dict.get("avg_ip_last3"),
-            "avg_er_last3": row_dict.get("avg_er_last3"),
-        }
-        resultes.append(pitcher_data)
+    row_dict = dict(zip(cols, row))
     
+    # 確保 DataFrame 欄位與模型訓練時一致 (順序與名稱)
+    # 補齊可能缺失的欄位 (這很重要，避免 pipeline 報錯)
+    input_data = {f: row_dict.get(f, 0) for f in FEATURES} # 簡單補 0，建議根據實際情況調整
+    df = pd.DataFrame([input_data])
+
+    print(row_dict)
+
     # 3. 回傳結果
-    return resultes
+    return {
+        "pitcher": row_dict.get("pitcher_name"),
+        "game_date": str(row_dict.get("game_date")),
+        "qs_probability": row_dict.get("qs_prebability"),
+        "team": row_dict.get("team"),
+        "opp_team": row_dict.get("opp_team"),
+        "avg_ip_last3": row_dict.get("avg_ip_last3"),
+        "avg_er_last3": row_dict.get("avg_er_last3"),
+    }
+
+if __name__ == "__main__":
+    get_top_predictions()
 
 # TODO: 實作其他端點以取代 Mock Data
 # @app.get("/api/top-pitchers") ...

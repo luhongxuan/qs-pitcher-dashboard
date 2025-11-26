@@ -104,36 +104,36 @@ export const HomePage: React.FC = () => {
                   <div className="flex items-center gap-4">
                     <img 
                       src={pitcher.image_url} 
-                      alt={pitcher.name} 
+                      alt={pitcher.pitcher_name} 
                       className="w-14 h-14 rounded-full object-cover border-2 border-slate-700 group-hover:border-blue-500 transition-colors"
                     />
                     <div>
-                      <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{pitcher.name}</h3>
-                      <p className="text-sm text-slate-400">{pitcher.team} • {pitcher.hand}HP</p>
+                      <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{pitcher.pitcher_name}</h3>
+                      <p className="text-sm text-slate-400">{pitcher.team} • {pitcher.opp_team} HP</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400 font-mono mb-1">QS%</div>
-                    <div className="font-bold text-white">{pitcher.qs_percentage}%</div>
+                    <div className="font-bold text-white">{pitcher.qs_probability}%</div>
                   </div>
                 </div>
 
                 <div className="mt-6 grid grid-cols-3 gap-2 border-t border-slate-800 pt-4">
                   <div className="text-center">
-                    <div className="text-xs text-slate-500 uppercase">ERA</div>
-                    <div className="font-semibold text-slate-200">{pitcher.season_era.toFixed(2)}</div>
+                    <div className="text-xs text-slate-500 uppercase">avg_ERA</div>
+                    <div className="font-semibold text-slate-200">{pitcher.avg_er_last3.toFixed(2)}</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-slate-500 uppercase">WHIP</div>
-                    <div className="font-semibold text-slate-200">{pitcher.season_whip.toFixed(2)}</div>
+                    <div className="text-xs text-slate-500 uppercase">avg_IP</div>
+                    <div className="font-semibold text-slate-200">{pitcher.avg_ip_last3.toFixed(2)}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-slate-500 uppercase">Next Prob</div>
                     <div className={`font-bold ${
-                      (pitcher.next_qs_prob || 0) > 75 ? 'text-emerald-400' : 
-                      (pitcher.next_qs_prob || 0) > 50 ? 'text-yellow-400' : 'text-rose-400'
+                      (pitcher.qs_probability || 0) > 75 ? 'text-emerald-400' : 
+                      (pitcher.qs_probability || 0) > 50 ? 'text-yellow-400' : 'text-rose-400'
                     }`}>
-                      {pitcher.next_qs_prob}%
+                      {pitcher.qs_probability}%
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 // services/api.ts
 import { Pitcher, PredictionResponse, GameLog, PitcherStats } from '../types';
-import { MOCK_TOP_PITCHERS, MOCK_RECENT_GAMES } from '../constants';
+import { MOCK_TOP_PITCHERS, MOCK_PREDICTION_TEMPLATE, MOCK_RECENT_GAMES } from '../constants';
 
 // services/api.ts
 
@@ -40,5 +40,29 @@ export const getPitcherPrediction = async (pitcherId: string, date?: string): Pr
   } catch (error) {
     console.error("Failed to fetch prediction:", error);
     throw error;
+  }
+};
+
+export const getTopPitchers = async (): Promise<Pitcher[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/get_top_predictions`);
+    if(!response.ok) {
+      console.warn("Failed to fetch top pitchers, using mock data.");
+      return MOCK_TOP_PITCHERS;
+    }
+
+    const data = await response.json();
+
+    return data.map((item: any) => ({
+      pitcher_name: item.pitcher_name,
+      team: item.team,
+      opp_team: item.opp_team,
+      avg_ip_last3: item.avg_ip_last3,
+      avg_er_last3: item.avg_er_last3,
+      qs_probability: item.qs_prebability
+    }));
+  } catch (error) {
+    console.error("Error fetching top pitchers:", error);
+    return MOCK_TOP_PITCHERS;
   }
 };
