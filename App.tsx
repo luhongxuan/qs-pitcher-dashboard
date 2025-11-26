@@ -2,7 +2,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
-import { PitcherDetailPage } from './pages/PitcherDetailPage';
+// import { PitcherDetailPage } from './pages/PitcherDetailPage';
 
 const App: React.FC = () => {
   return (
