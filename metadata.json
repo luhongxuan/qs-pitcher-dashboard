@@ -1,0 +1,5 @@
+{
+  "name": "QS Pitcher Dashboard",
+  "description": "A production-grade dashboard for baseball pitcher analytics and Quality Start predictions using machine learning feature importance.",
+  "requestFramePermissions": []
+}
