@@ -43,6 +43,35 @@ export const getPitcherPrediction = async (pitcherName: string, date?: string): 
   }
 };
 
+export const getPitcherStats = async (pitcherName: string, date?: string): Promise<PitcherStats> => {
+  try {
+    const url = new URL(`${API_BASE_URL}/status/${encodeURIComponent(pitcherName)}`);
+    if (date) {
+      url.searchParams.append('game_date', date);
+    }
+
+    const response = await fetch(url.toString());
+
+    if(!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      era_last_season: data.season_era,
+      whip_last_season: data.season_whip,
+      avg_ip_last3: data.avg_ip_last3,
+      avg_er_last3: data.avg_er_last3,
+      opp_ops: data.opp_ops,
+      rest_days: data.rest_days
+    }
+  }catch (error) {
+    console.error("Falied to fetch pitcher stats:", error);
+    throw error;
+  }
+}
+
 export const getTopPitchers = async (): Promise<Pitcher[]> => {
   try {
     const response = await fetch(`${API_BASE_URL}/get_top_predictions`);

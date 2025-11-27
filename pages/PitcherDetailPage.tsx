@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Calendar, Info, ShieldAlert, ArrowLeft, TrendingUp } from 'lucide-react';
-import { getPitcherPrediction} from '../services/api';
+import { getPitcherPrediction, getPitcherStats} from '../services/api';
 import { PredictionResponse, PitcherStats, GameLog } from '../types';
 import { GaugeChart } from '../components/GaugeChart';
 import { FeatureImportanceChart } from '../components/FeatureImportanceChart';
@@ -11,7 +11,7 @@ export const PitcherDetailPage: React.FC = () => {
   const { pitcher_name } = useParams<{ pitcher_name: string }>();
   const [loading, setLoading] = useState(true);
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
-  //const [stats, setStats] = useState<PitcherStats | null>(null);
+  const [stats, setStats] = useState<PitcherStats | null>(null);
   const [recentGames, setRecentGames] = useState<GameLog[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
 
@@ -24,15 +24,19 @@ export const PitcherDetailPage: React.FC = () => {
         // Fetch all data in parallel
         // const [predData, statsData, gamesData] = await Promise.all([
         //   getPitcherPrediction(pitcher_name, selectedDate || undefined),
-        //   getPitcherStats(pitcher_name),
+        //   getPitcherStats(pitcher_name   ,
         //   getRecentGames(pitcher_name)
         // ]);
 
-        const predData = await getPitcherPrediction(pitcher_name, selectedDate || undefined);
+        const [predData, statsData] = await Promise.all([
+            getPitcherPrediction(pitcher_name, selectedDate || undefined),
+            getPitcherStats(pitcher_name),
+            //getGameData(pitcher_name)
+        ]);
 
         setPrediction(predData);
-        // setStats(statsData);
-        // setRecentGames(gamesData);
+        setStats(statsData);
+        //setRecentGames(gamesData);
         
         // If it was initial load, set the date to the returned game date
         if (!selectedDate) {
@@ -133,7 +137,7 @@ export const PitcherDetailPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Key Stats Grid
+                Key Stats Grid
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Season & Context</h3>
                     <div className="grid grid-cols-2 gap-4">
@@ -156,16 +160,16 @@ export const PitcherDetailPage: React.FC = () => {
                         <div className="col-span-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 flex justify-between items-center">
                              <div>
                                 <div className="text-xs text-slate-500 uppercase">Last 3 Starts Avg IP</div>
-                                <div className="text-xl font-bold text-slate-200">{stats.avg_ip_last3}</div>
+                                <div className="text-xl font-bold text-slate-200">{stats.avg_ip_last3.toFixed(2)}</div>
                              </div>
                              <div className="h-8 w-[1px] bg-slate-700"></div>
                              <div className="text-right">
-                                <div className="text-xs text-slate-500 uppercase">QS Rate</div>
-                                <div className="text-xl font-bold text-emerald-400">{stats.qs_rate}%</div>
+                                <div className="text-xs text-slate-500 uppercase">Last 3 Starts Avg ER</div>
+                                <div className="text-xl font-bold text-emerald-400">{stats.avg_er_last3.toFixed(2)}</div>
                              </div>
                         </div>
                     </div>
-                </div> */}
+                </div>
             </div>
 
             {/* Right Column: Feature Importance & Game Log */}

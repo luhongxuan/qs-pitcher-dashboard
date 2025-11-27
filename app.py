@@ -221,6 +221,48 @@ async def get_prediction(
         "features": features_contrib
     }
 
+@app.get("/api/status/{pitcher_name}")
+async def get_pitcher_status(
+    request: Request,
+    pitcher_name: str,
+    date: str = Query(None) # YYYY-MM-DD
+):
+    db = request.app.state.db
+    db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
+
+    if not db:
+        raise HTTPException(status_code=503, detail="Database not available")
+
+    date_clause = "AND game_date = %s" if date else "ORDER BY game_date DESC LIMIT 1"
+    params = (pitcher_name, date) if date else (pitcher_name,)
+
+    sql = f"""
+        SELECT pitcher, game_date, season_era, season_whip, opp_ops, rest_days, avg_ip_last3, avg_er_last3
+        FROM pitcher_features
+        WHERE pitcher ILIKE %s {date_clause}
+    """
+
+    with db.cursor() as cur:
+        cur.execute(sql, params)
+        row = cur.fetchone()
+        cols = [desc[0] for desc in cur.description]
+
+    if not row:
+        raise HTTPException(status_code=404, detail=f"No data found for pitcher {pitcher_name}")
+    
+    row_dict = dict(zip(cols, row))
+
+    return {
+        "pitcher": row_dict.get("pitcher"),
+        "game_date": str(row_dict.get("game_date")),
+        "season_era": row_dict.get("season_era"),
+        "season_whip": row_dict.get("season_whip"),
+        "opp_ops": row_dict.get("opp_ops"),
+        "rest_days": row_dict.get("rest_days"),
+        "avg_ip_last3": row_dict.get("avg_ip_last3"),
+        "avg_er_last3": row_dict.get("avg_er_last3"),
+    }
+
 @app.get("/api/get_top_predictions")
 async def get_top_predictions(
     request: Request, 

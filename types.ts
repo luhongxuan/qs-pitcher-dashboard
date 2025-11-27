@@ -26,7 +26,7 @@ export interface PredictionResponse {
 }
 
 export interface GameLog {
-  id: string;
+  pitcher: string;
   date: string;
   opponent: string;
   result: string;
@@ -41,8 +41,6 @@ export interface GameLog {
 export interface PitcherStats {
   era_last_season: number;
   whip_last_season: number;
-  qs_count: number;
-  qs_rate: number;
   avg_ip_last3: number;
   avg_er_last3: number;
   opp_ops: number;

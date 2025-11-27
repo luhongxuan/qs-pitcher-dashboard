@@ -51,6 +51,78 @@ def get_pitcher_current_team(pitcher_name: str) -> str | None:
     team_name = TEAM_ABBREVIATION_MAP.get(team_info["teamCode"].upper(), team_info["teamCode"].upper())
 
     return team_name
+# === 1. 設定檔案名稱 ===
+# 請將此處改成您實際的 Excel 檔名
+CSV_FILE_PATH = 'All_Pitchers_2025_Consolidated_qs_pred.csv' 
+
+# === 2. 設定資料庫連線 ===
+# 程式會自動讀取系統環境變數，如果沒有設定，就會使用後面的預設值 (本地開發用)
+# 請確保您的密碼是正確的
+DB_URL = os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats")
+
+def import_csv_to_db():
+    print(f"📂 正在讀取 CSV: {CSV_FILE_PATH} ...")
+    
+    try:
+        # 讀取 CSV
+        df = pd.read_csv(CSV_FILE_PATH)
+        
+        # 簡單的欄位檢查 (確保 CSV 裡有我們需要的欄位)
+        # 假設 CSV 欄位名稱如下 (根據您之前的 Excel 輸出)
+        required_cols = ['pitcher', 'Predicted_QS_Probability']
+        if not all(col in df.columns for col in required_cols):
+            print(f"❌ CSV 格式錯誤，缺少必要欄位。您的欄位: {df.columns.tolist()}")
+            return
+
+        # 連線資料庫
+        with psycopg.connect(DB_URL) as conn:
+            with conn.cursor() as cur:
+                success_count = 0
+                
+                for _, row in df.iterrows():
+                    # --- 資料對應 (Mapping) ---
+                    # 從 CSV 讀取
+                    pitcher_name = row.get('pitcher')
+                    
+                    # 處理日期 (如果 CSV 裡是字串)
+                    game_date_str = str(row.get('game_date', datetime.now().date()))
+                    
+                    # 數值欄位 (處理空值)
+                    qs_prob = float(row.get('Predicted_QS_Probability', 0))
+                    team = row.get('Team', 'UNK')
+                    opp_team = row.get('opp_team', 'UNK')
+                    avg_ip = float(row.get('avg_ip_last3', 0))
+                    avg_er = float(row.get('avg_er_last3', 0))
+
+                    # --- SQL 插入/更新指令 ---
+                    # 這裡假設您使用的是 daily_predictions 表
+                    # sql = """
+                    #     INSERT INTO daily_predictions 
+                    #     (pitcher_name, game_date, qs_probability, team, opp_team, avg_ip_last3, avg_er_last3)
+                    #     VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    #     ON CONFLICT (pitcher_name) 
+                    #     DO UPDATE SET 
+                    #         qs_probability = EXCLUDED.qs_probability,
+                    #         game_date = EXCLUDED.game_date,
+                    #         team = EXCLUDED.team,
+                    #         opp_team = EXCLUDED.opp_team,
+                    #         avg_ip_last3 = EXCLUDED.avg_ip_last3,
+                    #         avg_er_last3 = EXCLUDED.avg_er_last3;
+                    # """
+                    
+                    # cur.execute(sql, (
+                    #     pitcher_name, game_date_str, qs_prob, team, opp_team, avg_ip, avg_er
+                    # ))
+                    success_count += 1
+            
+            # 確認交易
+            conn.commit()
+            print(f"✅ 成功匯入 {success_count} 筆資料！")
+
+    except FileNotFoundError:
+        print(f"❌ 找不到檔案: {CSV_FILE_PATH}")
+    except Exception as e:
+        print(f"❌ 發生錯誤: {e}")
 
 load_dotenv()
 
@@ -115,3 +187,6 @@ try:
     conn.close()
 except Exception as e:
     raise RuntimeError(f"資料庫操作失敗: {e}")
+
+if __name__ == "__main__":
+    import_excel_to_db()
