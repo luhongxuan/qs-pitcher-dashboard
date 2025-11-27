@@ -9,11 +9,11 @@ import { Pi } from 'lucide-react';
 // 注意：Vite 專案中，若有設定 proxy，可直接用 '/api' 或相對路徑
 const API_BASE_URL = 'http://localhost:8000/api';
   
-export const getPitcherPrediction = async (pitcherId: string, date?: string): Promise<PredictionResponse> => {
+export const getPitcherPrediction = async (pitcherName: string, date?: string): Promise<PredictionResponse> => {
   try {
     // 建構 URL: http://127.0.0.1:8000/predict?pitcher=Gerrit%20Cole
-    const url = new URL(`${API_BASE_URL}/predict`);
-    url.searchParams.append('pitcher', decodeURIComponent(pitcherId)); // 解碼網址中的名字
+    const url = new URL(`${API_BASE_URL}/prediction/${encodeURIComponent(pitcherName)}`);
+    //url.searchParams.append('pitcher_name', decodeURIComponent(pitcherName)); // 解碼網址中的名字
     if (date) {
       url.searchParams.append('game_date', date);
     }
@@ -30,12 +30,11 @@ export const getPitcherPrediction = async (pitcherId: string, date?: string): Pr
     // 轉換後端格式為前端需要的格式 (如果欄位名稱不完全一致)
     return {
       pitcher: data.pitcher,
-      pitcher_id: data.pitcher || pitcherId,
       game_date: data.game_date,
-      qs_probability: data.qs_prob, // 後端回傳的是 qs_prob
+      qs_probability: data.qs_probability, // 後端回傳的是 qs_prob
       threshold: 0.5, // 或者從後端取得
       opp_team: data.opp_team || "Unknown",
-      features: [] // 如果您的後端還沒回傳 features，先給空陣列避免報錯
+      features: data.features // 如果您的後端還沒回傳 features，先給空陣列避免報錯
     };
 
   } catch (error) {

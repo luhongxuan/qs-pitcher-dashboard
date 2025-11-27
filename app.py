@@ -152,10 +152,10 @@ def calculate_feature_contributions(raw_pipe, row_df):
 def health():
     return {"status": "ok"}
 
-@app.get("/api/prediction/{pitcher_id}")
+@app.get("/api/prediction/{pitcher_name}")
 async def get_prediction(
     request: Request, 
-    pitcher_id: str, 
+    pitcher_name: str, 
     date: str = Query(None) # YYYY-MM-DD
 ):
     """
@@ -164,6 +164,7 @@ async def get_prediction(
     為了簡化，這裡先假設 pitcher_id 就是投手姓名 (URL encoded)
     """
     db = request.app.state.db
+    db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
     pipe = request.app.state.pipe
     raw_pipe = request.app.state.raw_pipe
     threshold = request.app.state.threshold
@@ -173,10 +174,6 @@ async def get_prediction(
 
     # 處理日期
     target_date = date if date else datetime.now().strftime("%Y-%m-%d")
-
-    # 查詢 DB (根據您的 schema 調整)
-    # 這裡假設 pitcher_id 傳入的是投手姓名
-    pitcher_name = pitcher_id 
     
     # 如果沒有指定日期，找最近一場或未來的一場
     date_clause = "AND game_date = %s" if date else "ORDER BY game_date DESC LIMIT 1"
@@ -187,8 +184,6 @@ async def get_prediction(
                season_era, season_whip, hand, opp_team, team AS "Team", pitcher, game_date
         FROM pitcher_features
         WHERE pitcher ILIKE %s {date_clause}
-        ORDER BY game_date DESC
-        LIMIT 1
     """
     
     # 注意：如果 SQL 查詢欄位名稱不同，請使用 AS alias 
@@ -200,7 +195,6 @@ async def get_prediction(
 
     if not row:
         raise HTTPException(status_code=404, detail=f"No data found for pitcher {pitcher_name}")
-
     # 轉成 DataFrame
     row_dict = dict(zip(cols, row))
     
@@ -217,11 +211,9 @@ async def get_prediction(
 
     # 2. 計算解釋 (Feature Importance)
     features_contrib = calculate_feature_contributions(raw_pipe, df)
-
     # 3. 回傳結果
     return {
         "pitcher": row_dict.get("pitcher"),
-        "pitcher_id": pitcher_id,
         "game_date": str(row_dict.get("game_date")),
         "qs_probability": prob,
         "threshold": threshold,
@@ -238,9 +230,9 @@ async def get_top_predictions(
 
     sql = f"""
         SELECT pitcher_name, game_date, team, opp_team, avg_ip_last3, avg_er_last3,
-                qs_prebability
+                qs_probability
         FROM daily_predictions
-        ORDER BY qs_prebability DESC
+        ORDER BY qs_probability DESC
         LIMIT 5
     """
     
@@ -265,10 +257,9 @@ async def get_top_predictions(
         image_url_pitcher_name = row_dict.get("pitcher_name").replace(" ", "_").lower()
         
         pitcher_data = {
-            "pitcher_id": row_dict.get("pitcher_name"),
             "pitcher_name": row_dict.get("pitcher_name"),
             "game_date": str(row_dict.get("game_date")),
-            "qs_probability": row_dict.get("qs_prebability"),
+            "qs_probability": row_dict.get("qs_probability"),
             "team": row_dict.get("team"),
             "opp_team": row_dict.get("opp_team"),
             "avg_ip_last3": row_dict.get("avg_ip_last3"),
@@ -277,7 +268,6 @@ async def get_top_predictions(
         }
         resultes.append(pitcher_data)
     
-    print(resultes)
     # 3. 回傳結果
     return resultes
 

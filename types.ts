@@ -18,7 +18,6 @@ export interface FeatureContribution {
 
 export interface PredictionResponse {
   pitcher: string;
-  pitcher_id: string;
   game_date: string;
   qs_probability: number; // 0.0 to 1.0
   threshold: number;
