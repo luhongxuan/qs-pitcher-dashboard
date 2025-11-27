@@ -103,7 +103,7 @@ export const HomePage: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
                     <img 
-                      src={pitcher.image_url} 
+                      src={pitcher} 
                       alt={pitcher.pitcher_name} 
                       className="w-14 h-14 rounded-full object-cover border-2 border-slate-700 group-hover:border-blue-500 transition-colors"
                     />
