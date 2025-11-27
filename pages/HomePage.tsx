@@ -114,7 +114,7 @@ export const HomePage: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <div className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400 font-mono mb-1">QS%</div>
-                    <div className="font-bold text-white">{pitcher.qs_probability.toFixed(2)}%</div>
+                    <div className="font-bold text-white">{(pitcher.qs_probability*100).toFixed(1)}%</div>
                   </div>
                 </div>
 
@@ -130,10 +130,10 @@ export const HomePage: React.FC = () => {
                   <div className="text-center">
                     <div className="text-xs text-slate-500 uppercase">Next Prob</div>
                     <div className={`font-bold ${
-                      (pitcher.qs_probability || 0) > 75 ? 'text-emerald-400' : 
-                      (pitcher.qs_probability || 0) > 50 ? 'text-yellow-400' : 'text-rose-400'
+                      (pitcher.qs_probability*100 || 0) > 80 ? 'text-emerald-400' : 
+                      (pitcher.qs_probability*100 || 0) > 50 ? 'text-yellow-400' : 'text-rose-400'
                     }`}>
-                      {pitcher.qs_probability.toFixed(2)}%
+                      {(pitcher.qs_probability*100).toFixed(1)}%
                     </div>
                   </div>
                 </div>
