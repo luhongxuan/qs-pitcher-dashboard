@@ -7,7 +7,7 @@ import { Pi } from 'lucide-react';
 
 // 設定後端網址 (開發時通常是 localhost:8000，上線後是 Render 網址)
 // 注意：Vite 專案中，若有設定 proxy，可直接用 '/api' 或相對路徑
-const API_BASE_URL = 'https://qs-pitcher-dashboard-api.onrender.com/api';
+const API_BASE_URL = 'http://localhost:8000/api';
   
 export const getPitcherPrediction = async (pitcherId: string, date?: string): Promise<PredictionResponse> => {
   try {
@@ -60,7 +60,8 @@ export const getTopPitchers = async (): Promise<Pitcher[]> => {
       opp_team: item.opp_team,
       avg_ip_last3: item.avg_ip_last3,
       avg_er_last3: item.avg_er_last3,
-      qs_probability: item.qs_probability
+      qs_probability: item.qs_probability,
+      image_url: item.image_url
     }));
   } catch (error) {
     console.error("Error fetching top pitchers:", error);

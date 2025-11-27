@@ -11,6 +11,9 @@ import psycopg
 import pandas as pd
 import numpy as np
 import shap
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # === 設定 ===
 # 確保這些欄位名稱與您訓練時完全一致
@@ -231,6 +234,7 @@ async def get_top_predictions(
     request: Request, 
 ):
     db = request.app.state.db
+    db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
 
     sql = f"""
         SELECT pitcher_name, game_date, team, opp_team, avg_ip_last3, avg_er_last3,
@@ -257,6 +261,8 @@ async def get_top_predictions(
     resultes = []
     for row in rows:
         row_dict = dict(zip(cols, row))
+
+        image_url_pitcher_name = row_dict.get("pitcher_name").replace(" ", "_").lower()
         
         pitcher_data = {
             "pitcher_id": row_dict.get("pitcher_name"),
@@ -267,9 +273,11 @@ async def get_top_predictions(
             "opp_team": row_dict.get("opp_team"),
             "avg_ip_last3": row_dict.get("avg_ip_last3"),
             "avg_er_last3": row_dict.get("avg_er_last3"),
+            "image_url": f"/public/images/pitchers/{image_url_pitcher_name}_headshot.jpg"
         }
         resultes.append(pitcher_data)
     
+    print(resultes)
     # 3. 回傳結果
     return resultes
 
