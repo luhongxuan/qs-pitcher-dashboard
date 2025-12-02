@@ -26,7 +26,7 @@ export interface PredictionResponse {
 }
 
 export interface GameLog {
-  pitcher: string;
+  id: string;
   date: string;
   opponent: string;
   result: string;

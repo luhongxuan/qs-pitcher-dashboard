@@ -263,6 +263,52 @@ async def get_pitcher_status(
         "avg_er_last3": row_dict.get("avg_er_last3"),
     }
 
+@app.get("/api/get_recent_games/{pitcher_name}")
+async def get_pitcher_status(
+    request: Request,
+    pitcher_name: str,
+):
+    db = request.app.state.db
+    db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
+
+    if not db:
+        raise HTTPException(status_code=503, detail="Database not available")
+
+    sql = f"""
+        SELECT pitcher, game_date, opp_team, game_result, ip, er, r, bb, so
+        FROM stg_pitcher_raw_2025
+        WHERE pitcher ILIKE %s
+        ORDER BY game_date DESC LIMIT 5
+    """
+
+    with db.cursor() as cur:
+        cur.execute(sql, (pitcher_name,))
+        row = cur.fetchall()
+        cols = [desc[0] for desc in cur.description]
+
+    if not row:
+        raise HTTPException(status_code=404, detail=f"No data found for pitcher {pitcher_name}")
+    
+    total_rows = []
+    for i, r in enumerate(row):
+        row_dict = dict(zip(cols, r))
+        row_dict = {
+            "id": f"g{i + 1}",
+            "pitcher": row_dict.get("pitcher"),
+            "date": str(row_dict.get("game_date")),
+            "opponent": row_dict.get("opp_team"),
+            "result": row_dict.get("game_result"),
+            "ip": row_dict.get("ip"),
+            "er": row_dict.get("er"),
+            "r": row_dict.get("r"),
+            "bb": row_dict.get("bb"),
+            "so": row_dict.get("so"),
+            "is_qs": True if float(row_dict.get("ip")) >= 6 and float(row_dict.get("er")) <= 3 else False
+        }
+        total_rows.append(row_dict)
+    
+    return total_rows
+
 @app.get("/api/get_top_predictions")
 async def get_top_predictions(
     request: Request, 

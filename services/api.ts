@@ -43,6 +43,24 @@ export const getPitcherPrediction = async (pitcherName: string, date?: string): 
   }
 };
 
+export const getRecentGames = async(pitcherName: string): Promise<GameLog[]> => {
+  try{
+    const url = new URL(`${API_BASE_URL}/get_recent_games/${encodeURIComponent(pitcherName)}`);
+    
+    const response = await fetch(url.toString());
+    
+    if(!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  }catch (error) {
+    console.error("Failed to fetch recent games:", error);
+    throw error;
+  }
+};
+
 export const getPitcherStats = async (pitcherName: string, date?: string): Promise<PitcherStats> => {
   try {
     const url = new URL(`${API_BASE_URL}/status/${encodeURIComponent(pitcherName)}`);

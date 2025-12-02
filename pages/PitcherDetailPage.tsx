@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Calendar, Info, ShieldAlert, ArrowLeft, TrendingUp } from 'lucide-react';
-import { getPitcherPrediction, getPitcherStats} from '../services/api';
+import { getPitcherPrediction, getPitcherStats, getRecentGames} from '../services/api';
 import { PredictionResponse, PitcherStats, GameLog } from '../types';
 import { GaugeChart } from '../components/GaugeChart';
 import { FeatureImportanceChart } from '../components/FeatureImportanceChart';
@@ -28,15 +28,15 @@ export const PitcherDetailPage: React.FC = () => {
         //   getRecentGames(pitcher_name)
         // ]);
 
-        const [predData, statsData] = await Promise.all([
+        const [predData, statsData, gamesData] = await Promise.all([
             getPitcherPrediction(pitcher_name, selectedDate || undefined),
             getPitcherStats(pitcher_name),
-            //getGameData(pitcher_name)
+            getRecentGames(pitcher_name)
         ]);
 
         setPrediction(predData);
         setStats(statsData);
-        //setRecentGames(gamesData);
+        setRecentGames(gamesData);
         
         // If it was initial load, set the date to the returned game date
         if (!selectedDate) {
