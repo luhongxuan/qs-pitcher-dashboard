@@ -295,7 +295,7 @@ async def get_pitcher_status(
         row_dict = {
             "id": f"g{i + 1}",
             "pitcher": row_dict.get("pitcher"),
-            "date": str(row_dict.get("game_date")),
+            "date": datetime.strptime(str(row_dict.get("game_date")), "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d"),
             "opponent": row_dict.get("opp_team"),
             "result": row_dict.get("game_result"),
             "ip": row_dict.get("ip"),
