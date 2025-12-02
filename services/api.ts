@@ -1,5 +1,5 @@
 // services/api.ts
-import { Pitcher, PredictionResponse, GameLog, PitcherStats } from '../types';
+import { Pitcher, PredictionResponse, GameLog, PitcherStats, ScenarioFeatures  } from '../types';
 import { MOCK_TOP_PITCHERS, MOCK_PREDICTION_TEMPLATE, MOCK_RECENT_GAMES } from '../constants';
 import { Pi } from 'lucide-react';
 
@@ -77,12 +77,15 @@ export const getPitcherStats = async (pitcherName: string, date?: string): Promi
     const data = await response.json();
 
     return {
-      era_last_season: data.season_era,
-      whip_last_season: data.season_whip,
-      avg_ip_last3: data.avg_ip_last3,
-      avg_er_last3: data.avg_er_last3,
-      opp_ops: data.opp_ops,
-      rest_days: data.rest_days
+      era_last_season: Number(data.season_era || 0),
+      whip_last_season: Number(data.season_whip || 0),
+      hand: data.hand,
+      avg_ip_last3: Number(data.avg_ip_last3 || 0),
+      avg_er_last3: Number(data.avg_er_last3 || 0),
+      opp_ops: Number(data.opp_ops || 0),
+      is_home: Number(data.is_home || 0),
+      rest_days: data.rest_days,
+      team: data.team
     }
   }catch (error) {
     console.error("Falied to fetch pitcher stats:", error);
@@ -112,5 +115,36 @@ export const getTopPitchers = async (): Promise<Pitcher[]> => {
   } catch (error) {
     console.error("Error fetching top pitchers:", error);
     return MOCK_TOP_PITCHERS;
+  }
+};
+
+export const getSimulatedPrediction = async (features: ScenarioFeatures): Promise<PredictionResponse> => {
+  try {
+    const url = `${API_BASE_URL}/predict/simulate`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(features)
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return {
+      pitcher: data.pitcher,
+      game_date: data.game_date,
+      qs_probability: data.qs_probability, // 後端回傳的是 qs_prob
+      threshold: 0.5, // 或者從後端取得
+      opp_team: data.opp_team || "Unknown",
+      features: data.features // 如果您的後端還沒回傳 features，先給空陣列避免報錯
+    };
+  } catch (error) {
+    console.error("Failed to fetch simulated prediction:", error);
+    throw error;
   }
 };

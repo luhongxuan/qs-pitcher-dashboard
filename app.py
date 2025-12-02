@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from datetime import date, datetime
+from pydantic import BaseModel
 import os
 import joblib
 import psycopg
@@ -237,8 +238,8 @@ async def get_pitcher_status(
     params = (pitcher_name, date) if date else (pitcher_name,)
 
     sql = f"""
-        SELECT pitcher, game_date, season_era, season_whip, opp_ops, rest_days, avg_ip_last3, avg_er_last3
-        FROM pitcher_features
+        SELECT pitcher, game_date, season_era, season_whip, hand, opp_ops, is_home, rest_days, avg_ip_last3, avg_er_last3, team
+        FROM stg_pitcher_raw_2025
         WHERE pitcher ILIKE %s {date_clause}
     """
 
@@ -257,10 +258,13 @@ async def get_pitcher_status(
         "game_date": str(row_dict.get("game_date")),
         "season_era": row_dict.get("season_era"),
         "season_whip": row_dict.get("season_whip"),
+        "hand": row_dict.get("hand"),
         "opp_ops": row_dict.get("opp_ops"),
+        "is_home": row_dict.get("is_home"),
         "rest_days": row_dict.get("rest_days"),
         "avg_ip_last3": row_dict.get("avg_ip_last3"),
         "avg_er_last3": row_dict.get("avg_er_last3"),
+        "team": row_dict.get("team")
     }
 
 @app.get("/api/get_recent_games/{pitcher_name}")
@@ -358,6 +362,68 @@ async def get_top_predictions(
     
     # 3. 回傳結果
     return resultes
+
+class SimulationRequest(BaseModel):
+    # 固定特徵 (使用者不能改，但模型需要)
+    pitcher: str
+    Team: str
+    opp_team: str
+    hand: str
+    season_era: float
+    season_whip: float
+    
+    # 可調整特徵 (使用者手動輸入的)
+    rest_days: int
+    opp_ops: float
+    is_home: int
+    avg_ip_last3: float
+    avg_er_last3: float
+
+# === 2. 新增 POST 端點 ===
+@app.post("/api/predict/simulate")
+async def predict_simulate(
+    request: Request,
+    features: SimulationRequest
+):
+    """
+    接收前端傳來的完整特徵數據（含使用者修改過的值），
+    不查資料庫，直接用模型進行即時推論。
+    """
+    pipe = request.app.state.pipe
+    raw_pipe = request.app.state.raw_pipe
+    threshold = request.app.state.threshold
+
+    # 將 Pydantic 物件轉為 DataFrame
+    data_dict = features.model_dump()
+    print(data_dict)
+    df = pd.DataFrame([data_dict])
+
+    # 重要：確保欄位順序與訓練時完全一致
+    try:
+        # FEATURES 是您在程式碼最上方定義的全域變數
+        df = df[FEATURES]
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Missing required features: {e}")
+
+    try:
+        # 1. 執行預測 (QS 機率)
+        prob = float(pipe.predict_proba(df)[0, 1])
+
+        # 2. 計算 SHAP 解釋 (讓使用者知道調整後的影響)
+        features_contrib = calculate_feature_contributions(raw_pipe, df)
+
+        return {
+            "pitcher": features.pitcher,
+            "game_date": "Simulation", # 標記這是模擬
+            "qs_probability": prob,
+            "threshold": threshold,
+            "opp_team": features.opp_team,
+            "features": features_contrib
+        }
+
+    except Exception as e:
+        print(f"Simulation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
 # TODO: 實作其他端點以取代 Mock Data
 # @app.get("/api/top-pitchers") ...

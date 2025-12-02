@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Calendar, Info, ShieldAlert, ArrowLeft, TrendingUp } from 'lucide-react';
-import { getPitcherPrediction, getPitcherStats, getRecentGames} from '../services/api';
-import { PredictionResponse, PitcherStats, GameLog } from '../types';
+import { getPitcherPrediction, getPitcherStats, getRecentGames, getSimulatedPrediction} from '../services/api';
+import { PredictionResponse, PitcherStats, GameLog, ScenarioFeatures } from '../types';
 import { GaugeChart } from '../components/GaugeChart';
 import { FeatureImportanceChart } from '../components/FeatureImportanceChart';
 import { RecentGamesTable } from '../components/RecentGamesTable';
+import { ScenarioControls } from '../components/ScenarioControls';
+import { optimizeDeps } from 'vite';
 
 export const PitcherDetailPage: React.FC = () => {
   const { pitcher_name } = useParams<{ pitcher_name: string }>();
@@ -14,6 +16,7 @@ export const PitcherDetailPage: React.FC = () => {
   const [stats, setStats] = useState<PitcherStats | null>(null);
   const [recentGames, setRecentGames] = useState<GameLog[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
+  const [basePrediction, setBasePrediction] = useState<PredictionResponse | null>(null);
 
   useEffect(() => {
     if (!pitcher_name) return;
@@ -37,6 +40,7 @@ export const PitcherDetailPage: React.FC = () => {
         setPrediction(predData);
         setStats(statsData);
         setRecentGames(gamesData);
+        setBasePrediction(predData);
         
         // If it was initial load, set the date to the returned game date
         if (!selectedDate) {
@@ -52,6 +56,43 @@ export const PitcherDetailPage: React.FC = () => {
 
     loadData();
   }, [pitcher_name, selectedDate]);
+
+  // Derive initial scenario features from loaded stats
+  const baseFeatures: ScenarioFeatures | null = useMemo(() => {
+    if (!stats) return null;
+    return {
+      rest_days: stats.rest_days,
+      opp_ops: stats.opp_ops,
+      avg_ip_last3: stats.avg_ip_last3,
+      avg_er_last3: stats.avg_er_last3,
+      is_home: 1 // Default to home for demo, or could parse from prediction.opp_team context
+    };  
+  }, [stats]);
+
+  const handleScenarioChange = async (newFeatures: ScenarioFeatures) => {
+    if (!basePrediction || !baseFeatures) return;
+    
+    // We do not set a loading state here to keep the UI stable (no flashing)
+    try {
+        console.log(newFeatures);
+        const newPred = await getSimulatedPrediction(
+          {pitcher: pitcher_name || '',
+          Team: stats.team,
+          opp_team: prediction.opp_team,
+          hand: stats.hand,
+          season_era: stats.era_last_season,
+          season_whip: stats.whip_last_season,
+          rest_days: newFeatures.rest_days,
+          opp_ops: newFeatures.opp_ops,
+          avg_ip_last3: newFeatures.avg_ip_last3,
+          avg_er_last3: newFeatures.avg_er_last3,
+          is_home: newFeatures.is_home}
+        );
+        setPrediction(newPred);
+    } catch (e) {
+        console.error("Simulation failed", e);
+    } 
+  };
 
   if (loading) {
     return (
@@ -137,9 +178,12 @@ export const PitcherDetailPage: React.FC = () => {
                     </div>
                 </div>
 
-                Key Stats Grid
+                {/* Scenario Controls */}
+                <ScenarioControls baseFeatures={baseFeatures} onScenarioChange={handleScenarioChange} />
+
+                {/* Key Stats Grid */}
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">
-                    <h3 className="text-lg font-semibold text-white mb-4">Season & Context</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">Season Context</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
                             <div className="text-xs text-slate-500 uppercase">Season ERA</div>
@@ -149,23 +193,15 @@ export const PitcherDetailPage: React.FC = () => {
                             <div className="text-xs text-slate-500 uppercase">WHIP</div>
                             <div className="text-xl font-bold text-slate-200">{stats.whip_last_season.toFixed(2)}</div>
                         </div>
-                        <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
-                            <div className="text-xs text-slate-500 uppercase">Opponent OPS</div>
-                            <div className="text-xl font-bold text-slate-200">{stats.opp_ops.toFixed(3)}</div>
-                        </div>
-                         <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
-                            <div className="text-xs text-slate-500 uppercase">Rest Days</div>
-                            <div className="text-xl font-bold text-slate-200">{stats.rest_days}</div>
-                        </div>
                         <div className="col-span-2 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 flex justify-between items-center">
                              <div>
-                                <div className="text-xs text-slate-500 uppercase">Last 3 Starts Avg IP</div>
-                                <div className="text-xl font-bold text-slate-200">{stats.avg_ip_last3.toFixed(2)}</div>
+                                <div className="text-xs text-slate-500 uppercase">QS Rate</div>
+                                <div className="text-xl font-bold text-emerald-400">{(prediction.qs_probability * 100).toFixed(1)}%</div>
                              </div>
                              <div className="h-8 w-[1px] bg-slate-700"></div>
                              <div className="text-right">
-                                <div className="text-xs text-slate-500 uppercase">Last 3 Starts Avg ER</div>
-                                <div className="text-xl font-bold text-emerald-400">{stats.avg_er_last3.toFixed(2)}</div>
+                                <div className="text-xs text-slate-500 uppercase">Total QS</div>
+                                <div className="text-xl font-bold text-slate-200">{stats.qs_count}</div>
                              </div>
                         </div>
                     </div>

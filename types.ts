@@ -41,8 +41,25 @@ export interface GameLog {
 export interface PitcherStats {
   era_last_season: number;
   whip_last_season: number;
+  hand: 'L' | 'R';
   avg_ip_last3: number;
   avg_er_last3: number;
   opp_ops: number;
+  is_home: number;
   rest_days: number;
+  team: string;
+}
+
+export interface ScenarioFeatures {
+  pitcher: string;
+  Team: string;
+  opp_team: string;
+  hand: 'L' | 'R';
+  season_era: number;
+  season_whip: number;
+  rest_days: number;
+  opp_ops: number;
+  avg_ip_last3: number;
+  avg_er_last3: number;
+  is_home: number; // 1 = home, 0 = away
 }
