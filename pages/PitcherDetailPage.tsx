@@ -65,7 +65,7 @@ export const PitcherDetailPage: React.FC = () => {
       opp_ops: stats.opp_ops,
       avg_ip_last3: stats.avg_ip_last3,
       avg_er_last3: stats.avg_er_last3,
-      is_home: 1 // Default to home for demo, or could parse from prediction.opp_team context
+      is_home: stats.is_home // Default to home for demo, or could parse from prediction.opp_team context
     };  
   }, [stats]);
 

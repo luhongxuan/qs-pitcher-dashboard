@@ -122,6 +122,8 @@ export const getSimulatedPrediction = async (features: ScenarioFeatures): Promis
   try {
     const url = `${API_BASE_URL}/predict/simulate`;
 
+    console.log("Sending features for simulation:", features);
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {

@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
     # 範例: postgres://user:pass@localhost:5432/dbname
     try:
         app.state.db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
-        print("Database connected.")
+        print("Database connected.")    
     except Exception as e:
         print(f"Warning: Database connection failed: {e}")
         app.state.db = None
@@ -279,7 +279,7 @@ async def get_pitcher_status(
         raise HTTPException(status_code=503, detail="Database not available")
 
     sql = f"""
-        SELECT pitcher, game_date, opp_team, game_result, ip, er, r, bb, so
+        SELECT pitcher, game_date, opp_team, game_result, ip, er, r, bb, so, team_score, opp_score
         FROM stg_pitcher_raw_2025
         WHERE pitcher ILIKE %s
         ORDER BY game_date DESC LIMIT 5
@@ -301,7 +301,7 @@ async def get_pitcher_status(
             "pitcher": row_dict.get("pitcher"),
             "date": datetime.strptime(str(row_dict.get("game_date")), "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d"),
             "opponent": row_dict.get("opp_team"),
-            "result": row_dict.get("game_result"),
+            "result": row_dict.get("game_result") + f" {row_dict.get('team_score')}-{row_dict.get('opp_score')}",
             "ip": row_dict.get("ip"),
             "er": row_dict.get("er"),
             "r": row_dict.get("r"),
