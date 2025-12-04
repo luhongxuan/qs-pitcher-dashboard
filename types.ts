@@ -69,6 +69,6 @@ export interface PitchType {
   name: string;
   code: string;
   avg_velocity: number;
-  movement: "straight" | "sink" | "slide" | "curve";
+  movement: 'fastball' | 'sinker' | 'slider' | 'curve' | 'changeup' | 'cutter' | 'splitter';
   weight: number; // 0-1 probability weight
 }
