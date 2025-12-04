@@ -7,6 +7,7 @@ import { GaugeChart } from '../components/GaugeChart';
 import { FeatureImportanceChart } from '../components/FeatureImportanceChart';
 import { RecentGamesTable } from '../components/RecentGamesTable';
 import { ScenarioControls } from '../components/ScenarioControls';
+import { HitThePitch } from '../components/HitThePitch';
 import { optimizeDeps } from 'vite';
 
 export const PitcherDetailPage: React.FC = () => {
@@ -210,6 +211,8 @@ export const PitcherDetailPage: React.FC = () => {
 
             {/* Right Column: Feature Importance & Game Log */}
             <div className="lg:col-span-8 space-y-6">
+
+              <HitThePitch pitcherId={prediction.pitcher_id} pitcherName={prediction.pitcher} />
                 
                 {/* Feature Importance */}
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">

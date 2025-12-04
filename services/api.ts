@@ -1,7 +1,10 @@
 // services/api.ts
-import { Pitcher, PredictionResponse, GameLog, PitcherStats, ScenarioFeatures  } from '../types';
+import { Pitcher, PredictionResponse, GameLog, PitcherStats, ScenarioFeatures, PitchType  } from '../types';
 import { MOCK_TOP_PITCHERS, MOCK_PREDICTION_TEMPLATE, MOCK_RECENT_GAMES } from '../constants';
 import { Pi } from 'lucide-react';
+
+// Utilities to simulate network delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // services/api.ts
 
@@ -149,4 +152,29 @@ export const getSimulatedPrediction = async (features: ScenarioFeatures): Promis
     console.error("Failed to fetch simulated prediction:", error);
     throw error;
   }
+};
+
+const MOCK_PITCHES: Record<string, PitchType[]> = {
+    '1': [ // Skubal
+        { id: '1', name: '4-Seam Fastball', code: 'FF', avg_velocity: 96.5, movement: 'straight', weight: 0.45 },
+        { id: '2', name: 'Changeup', code: 'CH', avg_velocity: 84.0, movement: 'sink', weight: 0.30 },
+        { id: '3', name: 'Slider', code: 'SL', avg_velocity: 87.5, movement: 'slide', weight: 0.25 },
+    ],
+    '2': [ // Wheeler
+        { id: '1', name: '4-Seam Fastball', code: 'FF', avg_velocity: 95.8, movement: 'straight', weight: 0.40 },
+        { id: '2', name: 'Sinker', code: 'SI', avg_velocity: 95.0, movement: 'sink', weight: 0.20 },
+        { id: '3', name: 'Sweeper', code: 'ST', avg_velocity: 80.5, movement: 'curve', weight: 0.25 },
+        { id: '4', name: 'Curveball', code: 'CU', avg_velocity: 81.2, movement: 'curve', weight: 0.15 },
+    ],
+    // Default fallback
+    'default': [
+        { id: '1', name: 'Fastball', code: 'FF', avg_velocity: 93.0, movement: 'straight', weight: 0.5 },
+        { id: '2', name: 'Slider', code: 'SL', avg_velocity: 85.0, movement: 'slide', weight: 0.3 },
+        { id: '3', name: 'Curveball', code: 'CU', avg_velocity: 78.0, movement: 'curve', weight: 0.2 },
+    ]
+};
+
+export const getPitches = async (pitcherId: string): Promise<PitchType[]> => {
+    await delay(300);
+    return MOCK_PITCHES[pitcherId] || MOCK_PITCHES['default'];
 };

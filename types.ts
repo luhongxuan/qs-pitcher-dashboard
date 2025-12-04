@@ -63,3 +63,12 @@ export interface ScenarioFeatures {
   avg_er_last3: number;
   is_home: number; // 1 = home, 0 = away
 }
+
+export interface PitchType {
+  id: string;
+  name: string;
+  code: string;
+  avg_velocity: number;
+  movement: "straight" | "sink" | "slide" | "curve";
+  weight: number; // 0-1 probability weight
+}
