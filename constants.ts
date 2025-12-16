@@ -69,22 +69,32 @@ export const MOCK_RECENT_GAMES: GameLog[] = [
   { id: 'g5', date: '2024-09-04', opponent: '@ SD', result: 'ND 3-4', ip: 5.2, er: 3, h: 6, bb: 3, so: 5, is_qs: false },
 ];
 
-export const MOCK_PREDICTION_TEMPLATE: PredictionResponse = {
-  pitcher: "Tarik Skubal",
-  pitcher_id: "1",
-  game_date: "2025-05-12",
-  qs_probability: 0.734,
-  threshold: 0.50,
-  opp_team: "Tigers",
-  features: [
-    { name: "rest_days", value: 5, contribution: 0.23 },
-    { name: "opp_ops", value: 0.720, contribution: -0.15 },
-    { name: "avg_ip_last3", value: 6.1, contribution: 0.18 },
-    { name: "avg_er_last3", value: 2.3, contribution: 0.12 },
-    { name: "season_era", value: 2.39, contribution: 0.20 },
-    { name: "season_whip", value: 0.92, contribution: 0.10 },
-    { name: "hand", value: "L", contribution: 0.02 },
-    { name: "opp_team_rank", value: "18th", contribution: -0.05 },
-    { name: "venue_factor", value: 0.98, contribution: 0.03 }
-  ]
-};
+// export const MOCK_PREDICTION_TEMPLATE: PredictionResponse = {
+//   pitcher: "Tarik Skubal",
+//   pitcher_id: "1",
+//   game_date: "2025-05-12",
+//   qs_probability: 0.734,
+//   threshold: 0.50,
+//   opp_team: "Tigers",
+//   features: [
+//     { name: "rest_days", value: 5, contribution: 0.23 },
+//     { name: "opp_ops", value: 0.720, contribution: -0.15 },
+//     { name: "avg_ip_last3", value: 6.1, contribution: 0.18 },
+//     { name: "avg_er_last3", value: 2.3, contribution: 0.12 },
+//     { name: "season_era", value: 2.39, contribution: 0.20 },
+//     { name: "season_whip", value: 0.92, contribution: 0.10 },
+//     { name: "hand", value: "L", contribution: 0.02 },
+//     { name: "opp_team_rank", value: "18th", contribution: -0.05 },
+//     { name: "venue_factor", value: 0.98, contribution: 0.03 }
+//   ]
+// };
+
+export const MLB_TEAMS = [
+  "Arizona Diamondbacks", "Atlanta Braves", "Baltimore Orioles", "Boston Red Sox", "Chicago Cubs", 
+  "Chicago White Sox", "Cincinnati Reds", "Cleveland Guardians", "Colorado Rockies", "Detroit Tigers", 
+  "Houston Astros", "Kansas City Royals", "Los Angeles Angels", "Los Angeles Dodgers", "Miami Marlins", 
+  "Milwaukee Brewers", "Minnesota Twins", "New York Mets", "New York Yankees", "Oakland Athletics", 
+  "Philadelphia Phillies", "Pittsburgh Pirates", "San Diego Padres", "San Francisco Giants", 
+  "Seattle Mariners", "St. Louis Cardinals", "Tampa Bay Rays", "Texas Rangers", "Toronto Blue Jays", 
+  "Washington Nationals"
+];

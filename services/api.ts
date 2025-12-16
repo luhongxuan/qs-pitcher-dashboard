@@ -1,6 +1,6 @@
 // services/api.ts
-import { Pitcher, PredictionResponse, GameLog, PitcherStats, ScenarioFeatures, PitchType  } from '../types';
-import { MOCK_TOP_PITCHERS, MOCK_PREDICTION_TEMPLATE, MOCK_RECENT_GAMES } from '../constants';
+import { Pitcher, PredictionResponse, GameLog, PitcherStats, ScenarioFeatures, PitchType, User, AuthResponse, UserPreferences  } from '../types';
+import { MOCK_TOP_PITCHERS, MOCK_RECENT_GAMES } from '../constants';
 import { Pi } from 'lucide-react';
 
 // Utilities to simulate network delay
@@ -157,19 +157,19 @@ export const getSimulatedPrediction = async (features: ScenarioFeatures): Promis
 const MOCK_PITCHES: Record<string, PitchType[]> = {
     '1': [ // Skubal
         { id: '1', name: '4-Seam Fastball', code: 'FF', avg_velocity: 96.5, movement: 'straight', weight: 0.45 },
-        { id: '2', name: 'Changeup', code: 'CH', avg_velocity: 84.0, movement: 'sink', weight: 0.30 },
-        { id: '3', name: 'Slider', code: 'SL', avg_velocity: 87.5, movement: 'slide', weight: 0.25 },
+        { id: '2', name: 'Changeup', code: 'CH', avg_velocity: 84.0, movement: 'sinker', weight: 0.30 },
+        { id: '3', name: 'Slider', code: 'SL', avg_velocity: 87.5, movement: 'slider', weight: 0.25 },
     ],
     '2': [ // Wheeler
         { id: '1', name: '4-Seam Fastball', code: 'FF', avg_velocity: 95.8, movement: 'straight', weight: 0.40 },
-        { id: '2', name: 'Sinker', code: 'SI', avg_velocity: 95.0, movement: 'sink', weight: 0.20 },
+        { id: '2', name: 'Sinker', code: 'SI', avg_velocity: 95.0, movement: 'sinker', weight: 0.20 },
         { id: '3', name: 'Sweeper', code: 'ST', avg_velocity: 80.5, movement: 'curve', weight: 0.25 },
         { id: '4', name: 'Curveball', code: 'CU', avg_velocity: 81.2, movement: 'curve', weight: 0.15 },
     ],
     // Default fallback
     'default': [
         { id: '1', name: 'Fastball', code: 'FF', avg_velocity: 93.0, movement: 'straight', weight: 0.5 },
-        { id: '2', name: 'Slider', code: 'SL', avg_velocity: 85.0, movement: 'slide', weight: 0.3 },
+        { id: '2', name: 'Slider', code: 'SL', avg_velocity: 85.0, movement: 'slider', weight: 0.3 },
         { id: '3', name: 'Curveball', code: 'CU', avg_velocity: 78.0, movement: 'curve', weight: 0.2 },
     ]
 };
@@ -177,4 +177,193 @@ const MOCK_PITCHES: Record<string, PitchType[]> = {
 export const getPitches = async (pitcherId: string): Promise<PitchType[]> => {
     await delay(300);
     return MOCK_PITCHES[pitcherId] || MOCK_PITCHES['default'];
+};
+
+const STORAGE_KEYS = {
+  USERS: 'qs_users_db',
+  FAVORITES: 'qs_favorites_db',
+  TOKEN: 'qs_auth_token'
+};
+
+// Helper to get local DB
+const getLocalDB = () => {
+  const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+  const favorites = JSON.parse(localStorage.getItem(STORAGE_KEYS.FAVORITES) || '[]');
+  return { users, favorites };
+};
+
+// Save local DB helper
+const saveLocalDBUsers = (users: any[]) => {
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+}
+
+const DEFAULT_PREFERENCES: UserPreferences = {
+  email_qs_alerts: false,
+  email_marketing: false,
+  measurement_unit: 'imperial',
+  theme_preference: 'dark'
+};
+
+export const registerUser = async (email: string, password: string, username: string): Promise<AuthResponse> => {
+  await delay(800);
+  const { users } = getLocalDB();
+  
+  if (users.find((u: any) => u.email === email)) {
+    throw new Error("Email already registered");
+  }
+
+  const newUser: User = {
+    id: `user_${Date.now()}`,
+    email,
+    username,
+    display_name: username, // Default display name
+    joined_at: new Date().toISOString(),
+    preferences: DEFAULT_PREFERENCES
+  };
+
+  // Persist
+  saveLocalDBUsers([...users, { ...newUser, password }]);
+  
+  // Auto login
+  const token = `fake_jwt_${newUser.id}_${Date.now()}`;
+  return { user: newUser, token };
+};
+
+export const loginUser = async (email: string, password: string): Promise<AuthResponse> => {
+  await delay(800);
+  const { users } = getLocalDB();
+  const user = users.find((u: any) => u.email === email && u.password === password);
+  
+  if (!user) {
+    throw new Error("Invalid credentials");
+  }
+
+  // Ensure user has preferences object (migration for old data)
+  if (!user.preferences) {
+     user.preferences = DEFAULT_PREFERENCES;
+     // Update in DB
+     const updatedUsers = users.map((u:any) => u.id === user.id ? user : u);
+     saveLocalDBUsers(updatedUsers);
+  }
+
+  const { password: _, ...safeUser } = user;
+  const token = `fake_jwt_${safeUser.id}_${Date.now()}`;
+  return { user: safeUser, token };
+};
+
+export const getCurrentUser = async (token: string): Promise<User | null> => {
+  await delay(200); 
+  if (!token || !token.startsWith('fake_jwt_')) return null;
+  
+  const parts = token.split('_');
+  if (parts.length < 4) return null;
+  const userId = `${parts[2]}_${parts[3]}`;
+  
+  const { users } = getLocalDB();
+  const user = users.find((u: any) => u.id === userId);
+  if (!user) return null;
+
+  // Migration for old users without preferences
+  if (!user.preferences) user.preferences = DEFAULT_PREFERENCES;
+
+  const { password: _, ...safeUser } = user;
+  return safeUser;
+};
+
+// --- New Profile API Endpoints ---
+
+export const updateUserProfile = async (userId: string, updates: Partial<User>): Promise<User> => {
+  await delay(600);
+  const { users } = getLocalDB();
+  
+  const userIndex = users.findIndex((u: any) => u.id === userId);
+  if (userIndex === -1) throw new Error("User not found");
+
+  const currentUser = users[userIndex];
+  
+  // Merge updates (only allow specific fields)
+  const updatedUser = {
+    ...currentUser,
+    display_name: updates.display_name ?? currentUser.display_name,
+    favorite_team: updates.favorite_team ?? currentUser.favorite_team,
+    avatar_url: updates.avatar_url ?? currentUser.avatar_url
+  };
+
+  users[userIndex] = updatedUser;
+  saveLocalDBUsers(users);
+
+  const { password: _, ...safeUser } = updatedUser;
+  return safeUser;
+};
+
+export const updateUserPreferences = async (userId: string, preferences: UserPreferences): Promise<User> => {
+  await delay(500);
+  const { users } = getLocalDB();
+  
+  const userIndex = users.findIndex((u: any) => u.id === userId);
+  if (userIndex === -1) throw new Error("User not found");
+
+  const updatedUser = {
+    ...users[userIndex],
+    preferences: preferences
+  };
+
+  users[userIndex] = updatedUser;
+  saveLocalDBUsers(users);
+
+  const { password: _, ...safeUser } = updatedUser;
+  return safeUser;
+};
+
+export const changePassword = async (userId: string, currentPassword: string, newPassword: string): Promise<boolean> => {
+  await delay(800);
+  const { users } = getLocalDB();
+  
+  const userIndex = users.findIndex((u: any) => u.id === userId);
+  if (userIndex === -1) throw new Error("User not found");
+  
+  const user = users[userIndex];
+  
+  // Verify current password
+  if (user.password !== currentPassword) {
+    throw new Error("Current password is incorrect");
+  }
+
+  // Update password
+  user.password = newPassword; // In production, this would be hashed
+  users[userIndex] = user;
+  saveLocalDBUsers(users);
+
+  return true;
+};
+
+
+export const getFavorites = async (userId: string): Promise<string[]> => {
+  await delay(400);
+  const { favorites } = getLocalDB();
+  return favorites
+    .filter((f: any) => f.user_id === userId)
+    .map((f: any) => f.pitcher_id);
+};
+
+export const toggleFavorite = async (userId: string, pitcherId: string): Promise<boolean> => {
+  await delay(300);
+  const { favorites } = getLocalDB();
+  
+  const existingIndex = favorites.findIndex((f: any) => f.user_id === userId && f.pitcher_id === pitcherId);
+  let newFavorites;
+  let isAdded = false;
+
+  if (existingIndex >= 0) {
+    // Remove
+    newFavorites = favorites.filter((_: any, i: number) => i !== existingIndex);
+  } else {
+    // Add
+    newFavorites = [...favorites, { user_id: userId, pitcher_id: pitcherId, created_at: new Date().toISOString() }];
+    isAdded = true;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(newFavorites));
+  console.log(favorites, newFavorites);
+  return isAdded;
 };

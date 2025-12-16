@@ -1,22 +1,27 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
-import { Calendar, Info, ShieldAlert, ArrowLeft, TrendingUp } from 'lucide-react';
-import { getPitcherPrediction, getPitcherStats, getRecentGames, getSimulatedPrediction} from '../services/api';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Calendar, Info, ShieldAlert, ArrowLeft, TrendingUp, Heart } from 'lucide-react';
+import { getPitcherPrediction, getPitcherStats, getRecentGames, getSimulatedPrediction, getFavorites, toggleFavorite} from '../services/api';
 import { PredictionResponse, PitcherStats, GameLog, ScenarioFeatures } from '../types';
 import { GaugeChart } from '../components/GaugeChart';
 import { FeatureImportanceChart } from '../components/FeatureImportanceChart';
 import { RecentGamesTable } from '../components/RecentGamesTable';
 import { ScenarioControls } from '../components/ScenarioControls';
 import { HitThePitch } from '../components/HitThePitch';
+import { useAuth } from '../context/AuthContext';
 import { optimizeDeps } from 'vite';
 
 export const PitcherDetailPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const { pitcher_name } = useParams<{ pitcher_name: string }>();
   const [loading, setLoading] = useState(true);
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
   const [stats, setStats] = useState<PitcherStats | null>(null);
   const [recentGames, setRecentGames] = useState<GameLog[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favLoading, setFavLoading] = useState(false);
   const [basePrediction, setBasePrediction] = useState<PredictionResponse | null>(null);
 
   useEffect(() => {
@@ -57,6 +62,27 @@ export const PitcherDetailPage: React.FC = () => {
 
     loadData();
   }, [pitcher_name, selectedDate]);
+useEffect(() => {
+  const checkFavoriteStatus = async () => {
+      // 如果沒登入或沒有投手名字，就不用檢查
+      if (!isAuthenticated || !user || !pitcher_name) return;
+
+      try {
+        // 取得使用者所有的收藏清單
+        const userFavorites = await getFavorites(user.id);
+        
+        // 檢查目前的投手名字是否在清單中
+        // 假設 userFavorites 是一個包含投手名字的陣列 ['Gerrit Cole', 'Blake Snell']
+        const isFav = userFavorites.includes(pitcher_name);
+        
+        setIsFavorite(isFav);
+      } catch (error) {
+        console.error("Failed to check favorite status:", error);
+      }
+    };
+
+    checkFavoriteStatus();
+  }, [isAuthenticated, user, pitcher_name]);
 
   // Derive initial scenario features from loaded stats
   const baseFeatures: ScenarioFeatures | null = useMemo(() => {
@@ -93,6 +119,26 @@ export const PitcherDetailPage: React.FC = () => {
     } catch (e) {
         console.error("Simulation failed", e);
     } 
+  };
+
+  const handleToggleFavorite = async () => {
+
+    if (!isAuthenticated || !user || !pitcher_name) {
+        navigate('/login');
+        return;
+    }
+    setFavLoading(true);
+    // Optimistic update
+    const prev = isFavorite;
+    setIsFavorite(!isFavorite);
+    try {
+        await toggleFavorite(user.id, pitcher_name);
+    } catch (e) {
+        setIsFavorite(prev); // Revert on error
+        console.error("Failed to toggle favorite", e);
+    } finally {
+        setFavLoading(false);
+    }
   };
 
   if (loading) {
@@ -139,9 +185,23 @@ export const PitcherDetailPage: React.FC = () => {
                         <span className="bg-slate-800 px-2 py-0.5 rounded text-white">{prediction.pitcher_id === '1' ? 'LHP' : 'RHP'}</span>
                         <span>{prediction.pitcher}</span>
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-                        vs {prediction.opp_team}
-                    </h1>
+                    <div className="flex items-center gap-4 mb-2">
+                        <h1 className="text-3xl md:text-4xl font-bold text-white">
+                            vs {prediction.opp_team}
+                        </h1>
+                        <button 
+                            onClick={handleToggleFavorite}
+                            disabled={favLoading}
+                            className={`p-2 rounded-full transition-all border ${
+                                isFavorite 
+                                ? 'bg-rose-500/10 border-rose-500/50 text-rose-500' 
+                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-rose-500 hover:border-rose-500/50'
+                            }`}
+                            title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+                        >
+                            <Heart size={24} className={isFavorite ? "fill-rose-500" : ""} />
+                        </button>
+                    </div>
                     <p className="text-slate-300 max-w-2xl text-lg leading-relaxed">
                         {explanationText}
                     </p>
