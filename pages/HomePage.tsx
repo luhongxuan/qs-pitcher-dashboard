@@ -97,18 +97,18 @@ export const HomePage: React.FC = () => {
             {pitchers.map((pitcher, index) => (
               <div 
                 key={index}
-                onClick={() => navigate(`/pitcher/${pitcher.pitcher_name}`)}
+                onClick={() => navigate(`/pitcher/${pitcher.name}`)}
                 className="group bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/10 transition-all cursor-pointer relative overflow-hidden"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
                     <img 
                       src={pitcher.image_url} 
-                      alt={pitcher.pitcher_name} 
+                      alt={pitcher.name} 
                       className="w-14 h-14 rounded-full object-cover border-2 border-slate-700 group-hover:border-blue-500 transition-colors"
                     />
                     <div>
-                      <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{pitcher.pitcher_name}</h3>
+                      <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{pitcher.name}</h3>
                       <p className="text-sm text-slate-400">{pitcher.team} • {pitcher.opp_team}</p>
                     </div>
                   </div>

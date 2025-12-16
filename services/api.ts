@@ -107,7 +107,7 @@ export const getTopPitchers = async (): Promise<Pitcher[]> => {
     const data = await response.json();
 
     return data.map((item: any, index: number) => ({
-      pitcher_name: item.pitcher_name,
+      name: item.pitcher_name,
       team: item.team,
       opp_team: item.opp_team,
       avg_ip_last3: item.avg_ip_last3,

@@ -373,13 +373,13 @@ const FavoritesList: React.FC<{ favorites: Pitcher[], navigate: (p:string) => vo
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {favorites.map((pitcher) => (
               <div 
-                key={pitcher.pitcher_name} 
-                onClick={() => navigate(`/pitcher/${pitcher.pitcher_name}`)}
+                key={pitcher.name} 
+                onClick={() => navigate(`/pitcher/${pitcher.name}`)}
                 className="group bg-slate-950 border border-slate-800 rounded-lg p-4 hover:border-blue-500/50 hover:shadow-lg transition-all cursor-pointer flex items-center gap-4"
               >
-                  <img src={pitcher.image_url} alt={pitcher.pitcher_name} className="w-10 h-10 rounded-full object-cover" />
+                  <img src={pitcher.image_url} alt={pitcher.name} className="w-10 h-10 rounded-full object-cover" />
                   <div>
-                    <h4 className="font-bold text-white text-sm group-hover:text-blue-400">{pitcher.pitcher_name}</h4>
+                    <h4 className="font-bold text-white text-sm group-hover:text-blue-400">{pitcher.name}</h4>
                     <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
                        <span>{pitcher.team}</span>
                        <span className={`font-bold ${
@@ -423,7 +423,7 @@ export const ProfilePage: React.FC = () => {
         ]);
         console.log("Favorite IDs:", favIds);
         console.log("All Pitchers:", allPitchers);  
-        const userFavs = allPitchers.filter(p => favIds.includes(p.pitcher_name));
+        const userFavs = allPitchers.filter(p => favIds.includes(p.name));
         console.log(userFavs);
         setFavorites(userFavs);
       } catch (err) {
