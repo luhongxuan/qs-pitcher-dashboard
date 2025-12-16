@@ -81,6 +81,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# === 掛載靜態圖片 ===
+# 確保 public/images 資料夾存在，否則會報錯
+if os.path.exists("public/images"):
+    app.mount("/images", StaticFiles(directory="public/images"), name="images")
+else:
+    print("Warning: 'public/images' directory not found. Images will not be served.")
+
 # === 核心邏輯：計算 SHAP 貢獻值 ===
 def calculate_feature_contributions(raw_pipe, row_df):
     """
