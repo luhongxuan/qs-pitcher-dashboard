@@ -356,7 +356,7 @@ async def get_top_predictions(
             "opp_team": row_dict.get("opp_team"),
             "avg_ip_last3": row_dict.get("avg_ip_last3"),
             "avg_er_last3": row_dict.get("avg_er_last3"),
-            "image_url": f"/public/images/pitchers/{image_url_pitcher_name}_headshot.jpg"
+            "image_url": f"/images/pitchers/{image_url_pitcher_name}_headshot.jpg"
         }
         resultes.append(pitcher_data)
     
