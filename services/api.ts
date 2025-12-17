@@ -10,6 +10,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // 設定後端網址 (開發時通常是 localhost:8000，上線後是 Render 網址)
 // 注意：Vite 專案中，若有設定 proxy，可直接用 '/api' 或相對路徑
+// const API_BASE_URL = 'http://localhost:8000/api';
 const API_BASE_URL = 'https://qs-pitcher-dashboard-api.onrender.com/api';
   
 export const getPitcherPrediction = async (pitcherName: string, date?: string): Promise<PredictionResponse> => {
