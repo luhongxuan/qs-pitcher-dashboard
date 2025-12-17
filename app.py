@@ -348,6 +348,10 @@ async def get_top_predictions(
 
         image_url_pitcher_name = row_dict.get("pitcher_name").replace(" ", "_").lower()
         
+        # 取得後端 Base URL (Render 環境變數或預設值)
+        # 注意：Render 會自動提供 RENDER_EXTERNAL_URL，但我們也可以手動設定
+        base_url = os.environ.get("RENDER_EXTERNAL_URL", "https://qs-pitcher-dashboard-api.onrender.com")
+        
         pitcher_data = {
             "pitcher_name": row_dict.get("pitcher_name"),
             "game_date": str(row_dict.get("game_date")),
@@ -356,7 +360,8 @@ async def get_top_predictions(
             "opp_team": row_dict.get("opp_team"),
             "avg_ip_last3": row_dict.get("avg_ip_last3"),
             "avg_er_last3": row_dict.get("avg_er_last3"),
-            "image_url": f"images/pitchers/{image_url_pitcher_name}_headshot.jpg"
+            # 使用絕對路徑，確保前端可以跨網域存取圖片
+            "image_url": f"{base_url}/images/pitchers/{image_url_pitcher_name}_headshot.jpg"
         }
         resultes.append(pitcher_data)
     
