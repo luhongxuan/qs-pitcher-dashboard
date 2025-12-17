@@ -9,12 +9,13 @@ export const HomePage: React.FC = () => {
   const [pitchers, setPitchers] = useState<Pitcher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('qs_probability');
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const data = await getTopPitchers();
+        const data = await getTopPitchers(sortBy);
         setPitchers(data);
       } catch (err) {
         console.error("Failed to fetch top pitchers", err);
@@ -23,7 +24,7 @@ export const HomePage: React.FC = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [sortBy]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,10 +79,16 @@ export const HomePage: React.FC = () => {
           
           <div className="flex items-center gap-3">
              <div className="relative">
-                <select className="appearance-none bg-slate-800 border border-slate-700 text-slate-300 py-2 pl-4 pr-10 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-                  <option>Next Start Probability</option>
-                  <option>Season QS %</option>
-                  <option>Season ERA</option>
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="appearance-none bg-slate-800 border border-slate-700 text-slate-300 py-2 pl-4 pr-10 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="qs_probability">Next Start Probability</option>
+                  <option value="avg_ip_last3">Average Innings Pitched (Last 3)</option>
+                  <option value="avg_er_last3">Average Earned Runs (Last 3)</option>
+                  <option value="season_era">Season ERA</option>
+                  <option value="season_whip">Season WHIP</option>
                 </select>
                 <Filter size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
              </div>

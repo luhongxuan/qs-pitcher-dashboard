@@ -327,6 +327,72 @@ async def get_pitcher_status(
 @app.get("/api/get_top_predictions")
 async def get_top_predictions(
     request: Request, 
+    sort_by: str = Query("qs_probability")
+):
+    db = request.app.state.db
+    db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
+
+    order_clause = "qs_probability DESC"
+    if sort_by == "avg_ip_last3":
+        order_clause = "avg_ip_last3 DESC"
+    elif sort_by == "avg_er_last3":
+        order_clause = "avg_er_last3 ASC"
+    elif sort_by == "season_era":
+        order_clause = "season_era ASC"
+    elif sort_by == "season_whip":
+        order_clause = "season_whip ASC"
+
+    sql = f"""
+        SELECT pitcher_name, game_date, team, opp_team, avg_ip_last3, avg_er_last3,
+                qs_probability, season_era, season_whip
+        FROM daily_predictions
+        ORDER BY {order_clause}
+        LIMIT 5
+    """
+    
+    # 注意：如果 SQL 查詢欄位名稱不同，請使用 AS alias 
+    
+    with db.cursor() as cur:
+        cur.execute(sql)
+        rows = cur.fetchall()
+        if cur.description:
+            cols = [desc[0] for desc in cur.description]
+        else:
+            cols = []
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="No data found")
+
+    # 轉成 DataFrame
+    resultes = []
+    for row in rows:
+        row_dict = dict(zip(cols, row))
+
+        image_url_pitcher_name = row_dict.get("pitcher_name").replace(" ", "_")
+        
+        # 取得後端 Base URL (Render 環境變數或預設值)
+        # 注意：Render 會自動提供 RENDER_EXTERNAL_URL，但我們也可以手動設定
+        base_url = os.environ.get("RENDER_EXTERNAL_URL", "https://qs-pitcher-dashboard-api.onrender.com")
+        
+        pitcher_data = {
+            "pitcher_name": row_dict.get("pitcher_name"),
+            "game_date": str(row_dict.get("game_date")),
+            "qs_probability": row_dict.get("qs_probability"),
+            "team": row_dict.get("team"),
+            "opp_team": row_dict.get("opp_team"),
+            "avg_ip_last3": row_dict.get("avg_ip_last3"),
+            "avg_er_last3": row_dict.get("avg_er_last3"),
+            # 使用絕對路徑，確保前端可以跨網域存取圖片
+            "image_url": f"{base_url}/images/pitchers/{image_url_pitcher_name}_headshot.jpg"
+        }
+        resultes.append(pitcher_data)
+    
+    # 3. 回傳結果
+    return resultes
+
+@app.get("/api/get_all_predictions")
+async def get_all_predictions(
+    request: Request,
 ):
     db = request.app.state.db
     db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
@@ -335,8 +401,6 @@ async def get_top_predictions(
         SELECT pitcher_name, game_date, team, opp_team, avg_ip_last3, avg_er_last3,
                 qs_probability
         FROM daily_predictions
-        ORDER BY qs_probability DESC
-        LIMIT 5
     """
     
     # 注意：如果 SQL 查詢欄位名稱不同，請使用 AS alias 

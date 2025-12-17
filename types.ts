@@ -1,12 +1,17 @@
 export interface Pitcher {
-  id: string;
+  id?: string;
   name: string;
   team: string;
-  hand: 'L' | 'R';
-  season_era: number;
-  season_whip: number;
-  qs_percentage: number; // 0-100
-  next_qs_prob?: number; // 0-100
+  opp_team?: string;
+  hand?: 'L' | 'R';
+  season_era?: number;
+  season_whip?: number;
+  qs_percentage?: number; // 0-100
+  season_qs_percent?: number; // 0-1
+  qs_probability?: number; // 0-1
+  next_qs_prob?: number; // 0-100 (Legacy?)
+  avg_ip_last3?: number;
+  avg_er_last3?: number;
   image_url?: string;
 }
 

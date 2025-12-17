@@ -8,7 +8,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { 
     getFavorites, getTopPitchers, updateUserProfile, 
-    updateUserPreferences, changePassword 
+    updateUserPreferences, changePassword, 
+    getAllPitchers
 } from '../services/api';
 import { Pitcher, User as UserType, UserPreferences } from '../types';
 import { MLB_TEAMS } from '../constants';
@@ -419,7 +420,7 @@ export const ProfilePage: React.FC = () => {
       try {
         const [favIds, allPitchers] = await Promise.all([
           getFavorites(user.id),
-          getTopPitchers()
+          getAllPitchers()
         ]);
         console.log("Favorite IDs:", favIds);
         console.log("All Pitchers:", allPitchers);  
