@@ -72,6 +72,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Get the absolute path to the directory where app.py is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+images_dir = os.path.join(BASE_DIR, "public", "images")
+# Ensure the directory exists
+if not os.path.exists(images_dir):
+    print(f"Warning: Images directory not found at {images_dir}")
+else:
+    print(f"Images directory found at {images_dir}")
+
+app.mount("/images", StaticFiles(directory=images_dir), name="images")
+
 # 允許前端跨域請求 (如果是前後端分離開發)
 app.add_middleware(
     CORSMiddleware,
@@ -346,7 +357,7 @@ async def get_top_predictions(
     for row in rows:
         row_dict = dict(zip(cols, row))
 
-        image_url_pitcher_name = row_dict.get("pitcher_name").replace(" ", "_").lower()
+        image_url_pitcher_name = row_dict.get("pitcher_name").replace(" ", "_")
         
         # 取得後端 Base URL (Render 環境變數或預設值)
         # 注意：Render 會自動提供 RENDER_EXTERNAL_URL，但我們也可以手動設定
