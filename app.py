@@ -1,4 +1,3 @@
-# app.py
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,8 +15,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# === 設定 ===
-# 確保這些欄位名稱與您訓練時完全一致
 FEATURES = [
     "rest_days", "opp_ops", "is_home", "avg_ip_last3", "avg_er_last3",
     "season_era", "season_whip", "hand", "opp_team", "Team", "pitcher"
@@ -26,14 +23,12 @@ FEATURES = [
 NUMERIC_COLS = ["rest_days", "opp_ops", "is_home", "avg_ip_last3", "avg_er_last3", "season_era", "season_whip"]
 CATEG_COLS = ["hand", "opp_team", "Team", "pitcher"]
 
-# 模型路徑
 MODEL_PATH = "./artifacts_qs_xgb/qs_xgb_classifier_calibrated.joblib"
-RAW_PIPE_PATH = "./artifacts_qs_xgb/qs_xgb_pipeline_raw.joblib" # SHAP 需要原始模型
+RAW_PIPE_PATH = "./artifacts_qs_xgb/qs_xgb_pipeline_raw.joblib"
 THRESH_PATH = "./artifacts_qs_xgb/qs_best_threshold.json"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 啟動：載入模型與建立 DB 連線
     print("Loading models...")
     try:
         app.state.pipe = joblib.load(MODEL_PATH)
@@ -41,10 +36,8 @@ async def lifespan(app: FastAPI):
         print("Models loaded successfully.")
     except Exception as e:
         print(f"Error loading models: {e}")
-        # 為了避免服務起不來，這裡可以選擇報錯或設為 None，但建議修正路徑
         raise e
 
-    # 載入閾值
     app.state.threshold = 0.5
     if os.path.exists(THRESH_PATH):
         import json
@@ -55,8 +48,6 @@ async def lifespan(app: FastAPI):
         except:
             pass
 
-    # DB 連線 (請確保環境變數 DATABASE_URL 已設定)
-    # 範例: postgres://user:pass@localhost:5432/dbname
     try:
         app.state.db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
         print("Database connected.")    
@@ -66,16 +57,13 @@ async def lifespan(app: FastAPI):
 
     yield
     
-    # 關閉資源
     if app.state.db:
         app.state.db.close()
 
 app = FastAPI(lifespan=lifespan)
 
-# Get the absolute path to the directory where app.py is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 images_dir = os.path.join(BASE_DIR, "public", "images")
-# Ensure the directory exists
 if not os.path.exists(images_dir):
     print(f"Warning: Images directory not found at {images_dir}")
 else:
@@ -83,7 +71,6 @@ else:
 
 app.mount("/images", StaticFiles(directory=images_dir), name="images")
 
-# 允許前端跨域請求 (如果是前後端分離開發)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -92,33 +79,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# === 核心邏輯：計算 SHAP 貢獻值 ===
 def calculate_feature_contributions(raw_pipe, row_df):
-    """
-    計算單筆資料的特徵貢獻度 (SHAP values)
-    回傳格式符合前端 FeatureContribution 介面
-    """
     try:
         prep = raw_pipe.named_steps["prep"]
         xgb_model = raw_pipe.named_steps["model"]
 
-        # 1. 前處理 (Encoding)
         X_enc = prep.transform(row_df)
         
-        # 2. 計算 SHAP
         explainer = shap.TreeExplainer(xgb_model)
         shap_values = explainer.shap_values(X_enc)
 
-        # 處理 SHAP 回傳格式 (list vs ndarray)
         if isinstance(shap_values, list):
-            vals = shap_values[1][0] # 二元分類取正類別
+            vals = shap_values[1][0]
         else:
             vals = shap_values[0]
 
-        # 3. 對應特徵名稱
         encoded_names = prep.get_feature_names_out()
         
-        # 4. 加總 One-Hot Encoding 的貢獻回到原始欄位
         contrib_dict = {f: 0.0 for f in FEATURES}
         
         for name, v in zip(encoded_names, vals):
@@ -127,24 +104,20 @@ def calculate_feature_contributions(raw_pipe, row_df):
             else:
                 rest = name
             
-            # 如果是數值欄位
             if rest in NUMERIC_COLS:
                 contrib_dict[rest] += float(v)
                 continue
             
-            # 如果是類別欄位 (例如 opp_team_NYY -> opp_team)
             for cat in CATEG_COLS:
                 prefix = cat + "_"
                 if rest.startswith(prefix):
                     contrib_dict[cat] += float(v)
                     break
         
-        # 5. 格式化輸出
         contributions = []
         row_dict = row_df.iloc[0].to_dict()
         
         for feature_name in FEATURES:
-            # 為了美觀，可以過濾掉貢獻極小的特徵 (例如 0)
             if abs(contrib_dict[feature_name]) > 0.001:
                 contributions.append({
                     "name": feature_name,
@@ -158,8 +131,6 @@ def calculate_feature_contributions(raw_pipe, row_df):
         print(f"SHAP calculation error: {e}")
         return []
 
-# === API Endpoints ===
-
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
@@ -168,13 +139,8 @@ def health():
 async def get_prediction(
     request: Request, 
     pitcher_name: str, 
-    date: str = Query(None) # YYYY-MM-DD
+    date: str = Query(None)
 ):
-    """
-    取得特定投手的預測結果 (含 SHAP 解釋)
-    注意：這裡假設 pitcher_id 可以對應到 DB 中的投手名稱或 ID。
-    為了簡化，這裡先假設 pitcher_id 就是投手姓名 (URL encoded)
-    """
     db = request.app.state.db
     db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
     pipe = request.app.state.pipe
@@ -184,10 +150,8 @@ async def get_prediction(
     if not db:
         raise HTTPException(status_code=503, detail="Database not available")
 
-    # 處理日期
     target_date = date if date else datetime.now().strftime("%Y-%m-%d")
     
-    # 如果沒有指定日期，找最近一場或未來的一場
     date_clause = "AND game_date = %s" if date else "ORDER BY game_date DESC LIMIT 1"
     params = (pitcher_name, date) if date else (pitcher_name,)
 
@@ -198,32 +162,24 @@ async def get_prediction(
         WHERE pitcher ILIKE %s {date_clause}
     """
     
-    # 注意：如果 SQL 查詢欄位名稱不同，請使用 AS alias 
-    
     with db.cursor() as cur:
         cur.execute(sql, params)
-        row = cur.fetchone() # 假設回傳 tuple
+        row = cur.fetchone()
         cols = [desc[0] for desc in cur.description]
 
     if not row:
         raise HTTPException(status_code=404, detail=f"No data found for pitcher {pitcher_name}")
-    # 轉成 DataFrame
     row_dict = dict(zip(cols, row))
     
-    # 確保 DataFrame 欄位與模型訓練時一致 (順序與名稱)
-    # 補齊可能缺失的欄位 (這很重要，避免 pipeline 報錯)
-    input_data = {f: row_dict.get(f, 0) for f in FEATURES} # 簡單補 0，建議根據實際情況調整
+    input_data = {f: row_dict.get(f, 0) for f in FEATURES}
     df = pd.DataFrame([input_data])
 
-    # 1. 預測機率
     try:
         prob = float(pipe.predict_proba(df)[0, 1])
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
-    # 2. 計算解釋 (Feature Importance)
     features_contrib = calculate_feature_contributions(raw_pipe, df)
-    # 3. 回傳結果
     return {
         "pitcher": row_dict.get("pitcher"),
         "game_date": str(row_dict.get("game_date")),
@@ -237,7 +193,7 @@ async def get_prediction(
 async def get_pitcher_status(
     request: Request,
     pitcher_name: str,
-    date: str = Query(None) # YYYY-MM-DD
+    date: str = Query(None)
 ):
     db = request.app.state.db
     db = psycopg.connect(os.environ.get("DATABASE_URL", "postgres://postgres:password@localhost:5432/mlb_stats"))
@@ -350,8 +306,6 @@ async def get_top_predictions(
         LIMIT 5
     """
     
-    # 注意：如果 SQL 查詢欄位名稱不同，請使用 AS alias 
-    
     with db.cursor() as cur:
         cur.execute(sql)
         rows = cur.fetchall()
@@ -363,15 +317,12 @@ async def get_top_predictions(
     if not rows:
         raise HTTPException(status_code=404, detail="No data found")
 
-    # 轉成 DataFrame
     resultes = []
     for row in rows:
         row_dict = dict(zip(cols, row))
 
         image_url_pitcher_name = row_dict.get("pitcher_name").replace(" ", "_")
         
-        # 取得後端 Base URL (Render 環境變數或預設值)
-        # 注意：Render 會自動提供 RENDER_EXTERNAL_URL，但我們也可以手動設定
         base_url = os.environ.get("RENDER_EXTERNAL_URL", "https://qs-pitcher-dashboard-api.onrender.com")
         
         pitcher_data = {
@@ -382,12 +333,10 @@ async def get_top_predictions(
             "opp_team": row_dict.get("opp_team"),
             "avg_ip_last3": row_dict.get("avg_ip_last3"),
             "avg_er_last3": row_dict.get("avg_er_last3"),
-            # 使用絕對路徑，確保前端可以跨網域存取圖片
             "image_url": f"{base_url}/images/pitchers/{image_url_pitcher_name}_headshot.jpg"
         }
         resultes.append(pitcher_data)
     
-    # 3. 回傳結果
     return resultes
 
 @app.get("/api/get_all_predictions")
@@ -403,8 +352,6 @@ async def get_all_predictions(
         FROM daily_predictions
     """
     
-    # 注意：如果 SQL 查詢欄位名稱不同，請使用 AS alias 
-    
     with db.cursor() as cur:
         cur.execute(sql)
         rows = cur.fetchall()
@@ -416,15 +363,12 @@ async def get_all_predictions(
     if not rows:
         raise HTTPException(status_code=404, detail="No data found")
 
-    # 轉成 DataFrame
     resultes = []
     for row in rows:
         row_dict = dict(zip(cols, row))
 
         image_url_pitcher_name = row_dict.get("pitcher_name").replace(" ", "_")
         
-        # 取得後端 Base URL (Render 環境變數或預設值)
-        # 注意：Render 會自動提供 RENDER_EXTERNAL_URL，但我們也可以手動設定
         base_url = os.environ.get("RENDER_EXTERNAL_URL", "https://qs-pitcher-dashboard-api.onrender.com")
         
         pitcher_data = {
@@ -435,16 +379,13 @@ async def get_all_predictions(
             "opp_team": row_dict.get("opp_team"),
             "avg_ip_last3": row_dict.get("avg_ip_last3"),
             "avg_er_last3": row_dict.get("avg_er_last3"),
-            # 使用絕對路徑，確保前端可以跨網域存取圖片
             "image_url": f"{base_url}/images/pitchers/{image_url_pitcher_name}_headshot.jpg"
         }
         resultes.append(pitcher_data)
     
-    # 3. 回傳結果
     return resultes
 
 class SimulationRequest(BaseModel):
-    # 固定特徵 (使用者不能改，但模型需要)
     pitcher: str
     Team: str
     opp_team: str
@@ -452,49 +393,38 @@ class SimulationRequest(BaseModel):
     season_era: float
     season_whip: float
     
-    # 可調整特徵 (使用者手動輸入的)
     rest_days: int
     opp_ops: float
     is_home: int
     avg_ip_last3: float
     avg_er_last3: float
 
-# === 2. 新增 POST 端點 ===
 @app.post("/api/predict/simulate")
 async def predict_simulate(
     request: Request,
     features: SimulationRequest
 ):
-    """
-    接收前端傳來的完整特徵數據（含使用者修改過的值），
-    不查資料庫，直接用模型進行即時推論。
-    """
     pipe = request.app.state.pipe
     raw_pipe = request.app.state.raw_pipe
     threshold = request.app.state.threshold
 
-    # 將 Pydantic 物件轉為 DataFrame
     data_dict = features.model_dump()
     print(data_dict)
     df = pd.DataFrame([data_dict])
 
-    # 重要：確保欄位順序與訓練時完全一致
     try:
-        # FEATURES 是您在程式碼最上方定義的全域變數
         df = df[FEATURES]
     except KeyError as e:
         raise HTTPException(status_code=400, detail=f"Missing required features: {e}")
 
     try:
-        # 1. 執行預測 (QS 機率)
         prob = float(pipe.predict_proba(df)[0, 1])
 
-        # 2. 計算 SHAP 解釋 (讓使用者知道調整後的影響)
         features_contrib = calculate_feature_contributions(raw_pipe, df)
 
         return {
             "pitcher": features.pitcher,
-            "game_date": "Simulation", # 標記這是模擬
+            "game_date": "Simulation",
             "qs_probability": prob,
             "threshold": threshold,
             "opp_team": features.opp_team,
